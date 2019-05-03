@@ -1,0 +1,23 @@
+{
+    "name": "edsdk/flmngr-server-php",
+    "description": "Flmngr file manager PHP backend",
+    "version": "1.0.0",
+    "type": "library",
+    "keywords": ["file", "manager", "finder", "image", "upload", "server", "imgpen"],
+    "homepage": "https://flmngr.com",
+    "license": "proprietary",
+    "minimum-stability": "stable",
+
+    "authors": [
+        {
+            "name": "EdSDK",
+            "email": "edsdk@edsdk.com"
+        }
+    ],
+    "autoload": {
+        "psr-0" : {"EdSDK" : "src"}
+    },
+    "require": {
+        "edsdk/file-uploader-server-php": ">=1.0.0"
+    }
+}
