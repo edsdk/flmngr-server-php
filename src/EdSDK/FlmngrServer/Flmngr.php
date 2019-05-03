@@ -6,6 +6,9 @@ use EdSDK\FileUploaderServer\FileUploader;
 use EdSDK\FileUploaderServer\JsonCodec;
 use EdSDK\FileUploaderServer\Message;
 use EdSDK\FileUploaderServer\MessageException;
+use EdSDK\FlmngrServer\FMDiskFileSystem;
+use EdSDK\FlmngrServer\Response;
+
 
 class Flmngr {
 
