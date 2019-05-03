@@ -16,7 +16,7 @@ class Flmngr {
             $action = $_POST['action'];
             if ($action == null && isset($_POST["data"])) {
                 $configUploader = array(
-                    "dir" => $config["dir"],
+                    "dir" => $config["dirFiles"],
                     "config" => $config["uploader"]
                 );
                 FileUploader::fileUploadRequest($configUploader);
@@ -82,7 +82,7 @@ class Flmngr {
 
     }
 
-    static function reqDirCopy($config) {
+    private static function reqDirCopy($config) {
         $dirPath = $_GET['d'];
         $newPath = $_GET['n'];
         try {
@@ -94,7 +94,7 @@ class Flmngr {
         }
     }
 
-    static function reqDirCreate($config) {
+    private static function reqDirCreate($config) {
         $dirPath = $_GET['d'];
         $name = $_GET['n'];
         try {
@@ -106,7 +106,7 @@ class Flmngr {
         }
     }
 
-    static function reqDirDelete($config) {
+    private static function reqDirDelete($config) {
         $dirPath = $_GET['d'];
         try {
             $fileSystem = new FMDiskFileSystem($config);
@@ -117,12 +117,12 @@ class Flmngr {
         }
     }
 
-    static function reqDirDownload($config) {
+    private static function reqDirDownload($config) {
         $dirPath = $_GET['d'];
         // TODO:
     }
 
-    static function reqDirList($config) {
+    private static function reqDirList($config) {
         try {
             $fileSystem = new FMDiskFileSystem($config);
             $dirs = $fileSystem->getDirs();
@@ -132,7 +132,7 @@ class Flmngr {
         return new Response(null, $dirs);
     }
 
-    static function reqDirMove($config) {
+    private static function reqDirMove($config) {
         $dirPath = $_GET['d'];
         $newPath = $_GET['n'];
         try {
@@ -144,7 +144,7 @@ class Flmngr {
         }
     }
 
-    static function reqDirRename($config) {
+    private static function reqDirRename($config) {
         $dirPath = $_GET['d'];
         $newName = $_GET['n'];
         try {
@@ -156,7 +156,7 @@ class Flmngr {
         }
     }
 
-    static function reqFileCopy($config) {
+    private static function reqFileCopy($config) {
         $files = $_GET['fs'];
         $newPath = $_GET['n'];
 
@@ -171,7 +171,7 @@ class Flmngr {
         }
     }
 
-    static function reqFileDelete($config) {
+    private static function reqFileDelete($config) {
         $files = $_GET['fs'];
 
         $filesPaths = preg_split($files, "/|/");
@@ -185,7 +185,7 @@ class Flmngr {
         }
     }
 
-    static function reqFileList($config) {
+    private static function reqFileList($config) {
         $path = $_GET['d'];
 
         try {
@@ -197,7 +197,7 @@ class Flmngr {
         }
     }
 
-    static function reqFileMove($config) {
+    private static function reqFileMove($config) {
         $files = $_GET['fs'];
         $newPath = $_GET['n'];
 
@@ -212,17 +212,17 @@ class Flmngr {
         }
     }
 
-    static function reqFileOriginal($config) {
+    private static function reqFileOriginal($config) {
         $filePath = $_GET['f'];
         // TODO:
     }
 
-    static function reqFilePreview($config) {
+    private static function reqFilePreview($config) {
         $filePath = $_GET['f'];
         // TODO:
     }
 
-    static function reqFileRename($config) {
+    private static function reqFileRename($config) {
         $filePath = $_GET['f'];
         $newName = $_GET['n'];
 
