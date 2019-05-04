@@ -2,15 +2,24 @@
 
 namespace EdSDK\FlmngrServer;
 
-use EdSDK\FileUploaderServer\FileUploader;
-use EdSDK\FileUploaderServer\JsonCodec;
-use EdSDK\FileUploaderServer\Message;
-use EdSDK\FileUploaderServer\MessageException;
-use EdSDK\FlmngrServer\FMDiskFileSystem;
-use EdSDK\FlmngrServer\Response;
+/*require "fs/IFMDiskFileSystem.php";
+require "fs/FMDiskFileSystem.php";
+require "model/FMDir.php";
+require "model/FMFile.php";
+require "model/FMMessage.php";
+require "model/ImageInfo.php";
+require "resp/Response.php";*/
 
+use Exception;
 
-class Flmngr {
+use EdSDK\FileUploaderServer\FileUploaderServer;
+use EdSDK\FileUploaderServer\lib\JsonCodec;
+use EdSDK\FileUploaderServer\lib\action\resp\Message;
+use EdSDK\FileUploaderServer\lib\MessageException;
+
+use EdSDK\FlmngrServer\fs\FMDiskFileSystem;
+
+class FlmngrServer {
 
     static function flmngrRequest($config) {
 
@@ -22,7 +31,7 @@ class Flmngr {
                     "dir" => $config["dirFiles"],
                     "config" => $config["uploader"]
                 );
-                FileUploader::fileUploadRequest($configUploader);
+                FileUploaderServer::fileUploadRequest($configUploader);
                 return;
             }
         } else
@@ -31,46 +40,46 @@ class Flmngr {
         try {
             switch ($action) {
                 case 'dirList':
-                    $resp = Flmngr::reqDirList($config);
+                    $resp = FlmngrServer::reqDirList($config);
                     break;
                 case 'dirCreate':
-                    $resp = Flmngr::reqDirCreate($config);
+                    $resp = FlmngrServer::reqDirCreate($config);
                     break;
                 case 'dirRename':
-                    $resp = Flmngr::reqDirRename($config);
+                    $resp = FlmngrServer::reqDirRename($config);
                     break;
                 case 'dirDelete':
-                    $resp = Flmngr::reqDirDelete($config);
+                    $resp = FlmngrServer::reqDirDelete($config);
                     break;
                 case 'dirCopy':
-                    $resp = Flmngr::reqDirCopy($config);
+                    $resp = FlmngrServer::reqDirCopy($config);
                     break;
                 case 'dirMove':
-                    $resp = Flmngr::reqDirMove($config);
+                    $resp = FlmngrServer::reqDirMove($config);
                     break;
                 case 'dirDownload':
-                    $resp = Flmngr::reqDirDownload($config);
+                    $resp = FlmngrServer::reqDirDownload($config);
                     break;
                 case 'fileList':
-                    $resp = Flmngr::reqFileList($config);
+                    $resp = FlmngrServer::reqFileList($config);
                     break;
                 case 'fileDelete':
-                    $resp = Flmngr::reqFileDelete($config);
+                    $resp = FlmngrServer::reqFileDelete($config);
                     break;
                 case 'fileCopy':
-                    $resp = Flmngr::reqFileCopy($config);
+                    $resp = FlmngrServer::reqFileCopy($config);
                     break;
                 case 'fileRename':
-                    $resp = Flmngr::reqFileRename($config);
+                    $resp = FlmngrServer::reqFileRename($config);
                     break;
                 case 'fileMove':
-                    $resp = Flmngr::reqFileMove($config);
+                    $resp = FlmngrServer::reqFileMove($config);
                     break;
                 case 'fileOriginal':
-                    $resp = Flmngr::reqFileOriginal($config);
+                    $resp = FlmngrServer::reqFileOriginal($config);
                     break;
                 case 'filePreview':
-                    $resp = Flmngr::reqFilePreview($config);
+                    $resp = FlmngrServer::reqFilePreview($config);
                     break;
                 default:
                     $resp = new Response(Message::createMessage(Message::ACTION_NOT_FOUND), null);
@@ -79,9 +88,15 @@ class Flmngr {
             $resp = new Response($e->getFailMessage(), null);
         }
 
-        $json = JsonCodec::s_toJson($resp);
+        $strResp = JsonCodec::s_toJson($resp);
 
-        // TODO: send response
+        try {
+            http_response_code(200);
+            header('Content-Type: application/json; charset=UTF-8');
+            print($strResp);
+        } catch (Exception $e) {
+            error_log($e);
+        }
 
     }
 

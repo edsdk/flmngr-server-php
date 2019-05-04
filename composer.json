@@ -14,9 +14,11 @@
         }
     ],
     "autoload": {
-        "psr-0" : {"EdSDK" : "src"}
+        "psr-4": {
+            "EdSDK\\FlmngrServer\\": "src/"
+        }
     },
     "require": {
-        "edsdk/file-uploader-server-php": "1.0.0"
+        "edsdk/file-uploader-server-php": "1.0.2"
     }
 }

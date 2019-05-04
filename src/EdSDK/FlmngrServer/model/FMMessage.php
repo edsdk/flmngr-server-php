@@ -1,8 +1,8 @@
 <?php
 
-namespace EdSDK\FlmngrServer;
+namespace EdSDK\FlmngrServer\model;
 
-use EdSDK\FileUploaderServer\Message;
+use EdSDK\FileUploaderServer\lib\action\resp\Message;
 
 class FMMessage extends Message {
 

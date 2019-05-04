@@ -1,8 +1,9 @@
 <?php
 
-namespace EdSDK\FlmngrServer;
+namespace EdSDK\FlmngrServer\fs;
 
-use EdSDK\FileUploaderServer\MessageException;
+use EdSDK\FileUploaderServer\lib\MessageException;
+use EdSDK\FlmngrServer\model\FMMessage;
 
 class FMDiskFileSystem {
 

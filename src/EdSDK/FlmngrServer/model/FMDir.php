@@ -1,6 +1,6 @@
 <?php
 
-namespace EdSDK\FlmngrServer;
+namespace EdSDK\FlmngrServer\model;
 
 class FMDir {
 

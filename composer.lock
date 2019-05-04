@@ -4,26 +4,26 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "5c99974425a28978f8ca5a221ac500f7",
+    "content-hash": "af21f2262b3419d31f6515b701b0a7c9",
     "packages": [
         {
             "name": "edsdk/file-uploader-server-php",
-            "version": "1.0.0",
+            "version": "1.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/edsdk/file-uploader-server-php.git",
-                "reference": "8278b6470f9f0fea4e46b2550be5f1e08a3035da"
+                "reference": "1467cb7c5b73ffbd99b06cb88f035ee75dfbd8a4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/edsdk/file-uploader-server-php/zipball/8278b6470f9f0fea4e46b2550be5f1e08a3035da",
-                "reference": "8278b6470f9f0fea4e46b2550be5f1e08a3035da",
+                "url": "https://api.github.com/repos/edsdk/file-uploader-server-php/zipball/1467cb7c5b73ffbd99b06cb88f035ee75dfbd8a4",
+                "reference": "1467cb7c5b73ffbd99b06cb88f035ee75dfbd8a4",
                 "shasum": ""
             },
             "type": "library",
             "autoload": {
-                "psr-0": {
-                    "EdSDK": "src"
+                "psr-4": {
+                    "EdSDK\\FileUploaderServer\\": "src/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -45,7 +45,7 @@
                 "server",
                 "upload"
             ],
-            "time": "2019-05-03T17:58:23+00:00"
+            "time": "2019-05-04T11:36:18+00:00"
         }
     ],
     "packages-dev": [],
