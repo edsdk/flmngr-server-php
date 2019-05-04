@@ -10,6 +10,7 @@ require "model/FMMessage.php";
 require "model/ImageInfo.php";
 require "resp/Response.php";*/
 
+use EdSDK\FlmngrServer\resp\Response;
 use Exception;
 
 use EdSDK\FileUploaderServer\FileUploaderServer;
