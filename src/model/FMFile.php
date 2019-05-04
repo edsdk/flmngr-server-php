@@ -19,7 +19,7 @@ class FMFile {
         $this->imageInfo = $imageInfo;
     }
 
-    public function getFullPath() { return "/" + $this->path + "/" + $this->name; }
+    public function getFullPath() { return "/" . $this->path . "/" . $this->name; }
 
     public function getSize() { return $this->size; }
 

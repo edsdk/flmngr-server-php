@@ -2,14 +2,6 @@
 
 namespace EdSDK\FlmngrServer;
 
-/*require "fs/IFMDiskFileSystem.php";
-require "fs/FMDiskFileSystem.php";
-require "model/FMDir.php";
-require "model/FMFile.php";
-require "model/FMMessage.php";
-require "model/ImageInfo.php";
-require "resp/Response.php";*/
-
 use EdSDK\FlmngrServer\resp\Response;
 use Exception;
 

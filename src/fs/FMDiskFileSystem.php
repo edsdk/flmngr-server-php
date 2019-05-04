@@ -2,8 +2,12 @@
 
 namespace EdSDK\FlmngrServer\fs;
 
+use EdSDK\FileUploaderServer\lib\action\resp\Message;
 use EdSDK\FileUploaderServer\lib\MessageException;
+use EdSDK\FlmngrServer\model\FMDir;
+use EdSDK\FlmngrServer\model\FMFile;
 use EdSDK\FlmngrServer\model\FMMessage;
+use EdSDK\FlmngrServer\model\ImageInfo;
 
 class FMDiskFileSystem {
 
@@ -119,11 +123,12 @@ class FMDiskFileSystem {
         if ($fFiles === FALSE)
             throw new MessageException(FMMessage::createMessage(FMMessage::FM_DIR_CANNOT_BE_READ));
 
+        $files = [];
         for ($i=0; $i<count($fFiles); $i++) {
             $fFile = $fFiles[$i];
             if (is_file($fFile)) {
                 $imageInfo = $this->getImageInfo($fFile);
-                $file = new FMFile($dirPath, fFile, filesize($fFile), filemtime($fFile), imageInfo);
+                $file = new FMFile($dirPath, $fFile, filesize($fFile), filemtime($fFile), $imageInfo);
                 $files[] = $file;
             }
         }

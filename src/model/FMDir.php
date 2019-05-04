@@ -17,7 +17,7 @@ class FMDir {
         $this->dirsCount = $dirsCount;
     }
 
-    public function getFullPath() { return ($this->path.length() > 0 ? ("/" + $this->path) : "") + "/" + $this->name; }
+    public function getFullPath() { return (strlen($this->path) > 0 ? ("/" . $this->path) : "") . "/" . $this->name; }
 
     public function getFilesCount() { return $this->filesCount; }
 
