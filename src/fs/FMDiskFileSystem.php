@@ -51,8 +51,9 @@ class FMDiskFileSystem {
         $dirs[] = $dir;
 
         for ($i=0; $i<count($files); $i++)
-            if (is_dir($fDir . $files[$i]))
-                $this->getDirs__fill($dirs, $fDir . '/' . $files[$i], $path . (strlen($path) > 0 ? "/" : "") . $files[$i]);
+            if ($files[$i] !== '.' && $files[$i] !== ' ..')
+                if (is_dir($fDir . $files[$i]))
+                    $this->getDirs__fill($dirs, $fDir . '/' . $files[$i], $path . (strlen($path) > 0 ? "/" : "") . $files[$i]);
     }
 
     private function getRelativePath($path) {
