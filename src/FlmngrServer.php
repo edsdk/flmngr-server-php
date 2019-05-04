@@ -81,6 +81,7 @@ class FlmngrServer {
             $resp = new Response($e->getFailMessage(), null);
         }
 
+        print_r($resp);
         $strResp = JsonCodec::s_toJson($resp);
 
         try {
