@@ -7,20 +7,16 @@ class FMDir {
     private $path; // contains parent dir's path WITHOUT starting AND trailing "/"
     private $name;
 
-    private $filesCount;
-    private $dirsCount;
+    public $f;
+    public $d;
+    public $p; // property exists in PHP version only, for JSON generation
 
     function __construct($name, $path, $filesCount, $dirsCount) {
         $this->path = $path;
         $this->name = $name;
-        $this->filesCount = $filesCount;
-        $this->dirsCount = $dirsCount;
+        $this->f = $filesCount;
+        $this->d = $dirsCount;
+        $this->p = (strlen($this->path) > 0 ? ("/" . $this->path) : "") . "/" . $this->name;
     }
-
-    public function getFullPath() { return (strlen($this->path) > 0 ? ("/" . $this->path) : "") . "/" . $this->name; }
-
-    public function getFilesCount() { return $this->filesCount; }
-
-    public function getDirsCount() { return $this->dirsCount; }
 
 }

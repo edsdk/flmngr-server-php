@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "af21f2262b3419d31f6515b701b0a7c9",
+    "content-hash": "45ba81e70d15c309df2d4e7c35368bcc",
     "packages": [
         {
             "name": "edsdk/file-uploader-server-php",
-            "version": "1.0.2",
+            "version": "1.0.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/edsdk/file-uploader-server-php.git",
-                "reference": "1467cb7c5b73ffbd99b06cb88f035ee75dfbd8a4"
+                "reference": "f7f2a553b2754ae8e143c182a2d4881575b26ec1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/edsdk/file-uploader-server-php/zipball/1467cb7c5b73ffbd99b06cb88f035ee75dfbd8a4",
-                "reference": "1467cb7c5b73ffbd99b06cb88f035ee75dfbd8a4",
+                "url": "https://api.github.com/repos/edsdk/file-uploader-server-php/zipball/f7f2a553b2754ae8e143c182a2d4881575b26ec1",
+                "reference": "f7f2a553b2754ae8e143c182a2d4881575b26ec1",
                 "shasum": ""
             },
             "type": "library",
@@ -45,7 +45,7 @@
                 "server",
                 "upload"
             ],
-            "time": "2019-05-04T11:36:18+00:00"
+            "time": "2019-05-05T14:07:34+00:00"
         }
     ],
     "packages-dev": [],
@@ -54,6 +54,10 @@
     "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": [],
+    "platform": {
+        "ext-gd": "*",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
     "platform-dev": []
 }
