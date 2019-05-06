@@ -27,9 +27,9 @@ To handle some URL you want in your web application, create a file which will be
     
     Flmngr::flmngrRequest(
         array(
-            'dirFiles' => '/var/www/files',
-            'dirTmp'   => '/var/www/tmp',
-            'dirCache'   => '/var/www/cache'
+            'dirFiles' => 'data',
+            'dirTmp'   => 'data',
+            'dirCache'   => 'data'
         )
     );
 ```
