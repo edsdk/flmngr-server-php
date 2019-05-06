@@ -278,7 +278,7 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
     function getImagePreview($filePath, $width, $height) {
 
         $fullPath = $this->getAbsolutePath($filePath);
-        $hash = md5($filePath . $width . $height . filesize($fullPath));
+        $hash = md5($filePath . $width . $height . filesize($fullPath) . filemtime($fullPath));
         $fileCachedPath = $this->dirCache . '/' . $hash . '.png';
         if (!file_exists($fileCachedPath)) {
 
