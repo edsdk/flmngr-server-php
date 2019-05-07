@@ -177,7 +177,8 @@ class FlmngrServer {
 
         try {
             $fileSystem = new FMDiskFileSystem($config);
-            $fileSystem->copyFiles($filesPaths, $newPath);
+            for ($i=0; $i<count($filesPaths); $i++)
+                $fileSystem->copyFiles($filesPaths[$i], $newPath);
             return new Response(null, true);
         } catch (MessageException $e) {
             return new Response($e->getFailMessage(), null);
@@ -187,11 +188,12 @@ class FlmngrServer {
     private static function reqFileDelete($config) {
         $files = $_POST['fs'];
 
-        $filesPaths = preg_split($files, "/\|/");
+        $filesPaths = preg_split("/\|/", $files);
 
         try {
             $fileSystem = new FMDiskFileSystem($config);
-            $fileSystem->deleteFiles($filesPaths);
+            for ($i=0; $i<count($filesPaths); $i++)
+                $fileSystem->deleteFiles($filesPaths[$i]);
             return new Response(null, true);
         } catch (MessageException $e) {
             return new Response($e->getFailMessage(), null);
@@ -218,7 +220,8 @@ class FlmngrServer {
 
         try {
             $fileSystem = new FMDiskFileSystem($config);
-            $fileSystem->moveDir($filesPaths, $newPath);
+            for ($i=0; $i<count($filesPaths); $i++)
+                $fileSystem->moveDir($filesPaths[$i], $newPath);
             return new Response(null, true);
         } catch (MessageException $e) {
             return new Response($e->getFailMessage(), null);
