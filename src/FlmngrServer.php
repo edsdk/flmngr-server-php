@@ -187,7 +187,7 @@ class FlmngrServer {
     private static function reqFileDelete($config) {
         $files = $_POST['fs'];
 
-        $filesPaths = preg_split("/\|/", $files);
+        $filesPaths = preg_split($files, "/\|/");
 
         try {
             $fileSystem = new FMDiskFileSystem($config);
@@ -214,7 +214,7 @@ class FlmngrServer {
         $files = $_POST['fs'];
         $newPath = $_POST['n'];
 
-        $filesPaths = preg_split($files, "/|/");
+        $filesPaths = preg_split("/|/", $files);
 
         try {
             $fileSystem = new FMDiskFileSystem($config);
