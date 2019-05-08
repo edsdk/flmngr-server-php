@@ -218,7 +218,7 @@ class FlmngrServer {
 
         try {
             $fileSystem = new FMDiskFileSystem($config);
-            $fileSystem->moveDir($filesPaths, $newPath);
+            $fileSystem->moveFiles($filesPaths, $newPath);
             return new Response(null, true);
         } catch (MessageException $e) {
             return new Response($e->getFailMessage(), null);
