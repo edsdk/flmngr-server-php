@@ -18,6 +18,11 @@ class FlmngrServer {
 
         $action = null;
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!isset($_POST['action'])) {
+                http_response_code(500);
+                print("Malformed request");
+                return;
+            }
             $action = $_POST['action'];
             if ($action == null && isset($_POST["data"])) {
                 $configUploader = array(
