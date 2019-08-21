@@ -27,9 +27,9 @@ To handle some URL you want in your web application, create a file which will be
     
     Flmngr::flmngrRequest(
         array(
-            'dirFiles' => 'data',
-            'dirTmp'   => 'data',
-            'dirCache'   => 'data'
+            'dirFiles' => 'path-to/files',
+            'dirTmp'   => 'path-to/tmp',
+            'dirCache'   => 'path-to/cache'
         )
     );
 ```
@@ -53,7 +53,7 @@ Another backends are also available:
 ## See Also
 
 - [N1ED](https://n1ed.com) - you can integrate Flmngr with N1ED HTML editor
-- [ImgPen website](https://imgpen.com) - image editor for Flmngr
+- [ImgPen website](https://n1ed.com/docs/addons/image-editor) - image editor for Flmngr
 
 
 ## License
