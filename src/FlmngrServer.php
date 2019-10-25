@@ -18,12 +18,8 @@ class FlmngrServer {
 
         $action = null;
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (!isset($_POST['action'])) {
-                http_response_code(500);
-                print("Malformed request");
-                return;
-            }
-            $action = $_POST['action'];
+            if (isset($_POST['action']))
+                $action = $_POST['action'];
             if ($action == null && isset($_POST["data"])) {
                 $configUploader = array(
                     "dirFiles" => $config["dirFiles"],
@@ -75,10 +71,10 @@ class FlmngrServer {
                     $resp = FlmngrServer::reqFileMove($config);
                     break;
                 case 'fileOriginal':
-                    FlmngrServer::reqFileOriginal($config); // will die after valid response or throw MessageException
+                    $resp = FlmngrServer::reqFileOriginal($config); // will die after valid response or throw MessageException
                     break;
                 case 'filePreview':
-                    FlmngrServer::reqFilePreview($config); // will die after valid response or throw MessageException
+                    $resp = FlmngrServer::reqFilePreview($config); // will die after valid response or throw MessageException
                     break;
                 default:
                     $resp = new Response(Message::createMessage(Message::ACTION_NOT_FOUND), null);
