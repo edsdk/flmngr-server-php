@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "edsdk/file-uploader-server-php",
-            "version": "1.0.9",
+            "version": "1.0.10",
             "source": {
                 "type": "git",
                 "url": "https://github.com/edsdk/file-uploader-server-php.git",
-                "reference": "3d2125a06cdc50954c2c0d94f07e1bed9f678f02"
+                "reference": "2488147c7270f5735684a88f812d9b4edb40de1f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/edsdk/file-uploader-server-php/zipball/3d2125a06cdc50954c2c0d94f07e1bed9f678f02",
-                "reference": "3d2125a06cdc50954c2c0d94f07e1bed9f678f02",
+                "url": "https://api.github.com/repos/edsdk/file-uploader-server-php/zipball/2488147c7270f5735684a88f812d9b4edb40de1f",
+                "reference": "2488147c7270f5735684a88f812d9b4edb40de1f",
                 "shasum": ""
             },
             "type": "library",
@@ -45,7 +45,7 @@
                 "server",
                 "upload"
             ],
-            "time": "2020-01-26T21:03:48+00:00"
+            "time": "2020-01-26T21:28:06+00:00"
         }
     ],
     "packages-dev": [],
