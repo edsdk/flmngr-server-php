@@ -52,10 +52,9 @@ Another backends are also available:
 
 ## See Also
 
-- [N1ED](https://n1ed.com) - you can integrate Flmngr with N1ED HTML editor
-- [ImgPen website](https://n1ed.com/docs/addons/image-editor) - image editor for Flmngr
+- [N1ED](https://n1ed.com) - Flmngr server perfectly works with #1 free HTML WYSIWYG Editor which can be installed on your website (any CMS).  
 
 
 ## License
 
-Commercial EdSDK license. Purchase the product in order to use it.
+GNU General Public License version 3 or later; see LICENSE.txt
