@@ -9,9 +9,6 @@
 
 namespace EdSDK\FlmngrServer\fs;
 
-// No direct access to this file
-defined('_JEXEC') or die('Restricted access');
-
 interface IFMDiskFileSystem {
 
     function getImagePreview($filePath, $width, $height);

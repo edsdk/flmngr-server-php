@@ -9,9 +9,6 @@
 
 namespace EdSDK\FlmngrServer\model;
 
-// No direct access to this file
-defined('_JEXEC') or die('Restricted access');
-
 class FMFile {
 
     public $p; // contains parent dir's path WITHOUT starting AND trailing "/"

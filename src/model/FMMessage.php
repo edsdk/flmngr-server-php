@@ -9,9 +9,6 @@
 
 namespace EdSDK\FlmngrServer\model;
 
-// No direct access to this file
-defined('_JEXEC') or die('Restricted access');
-
 use EdSDK\FileUploaderServer\lib\action\resp\Message;
 
 class FMMessage extends Message {
