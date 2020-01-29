@@ -292,7 +292,7 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
 
         if (!file_exists($this->dirCache))
             if (!mkdir($this->dirCache))
-                throw new Exception("Unable to create cache files directory '" . $this->dirCache . "''");
+                throw new MessageException(FMMessage::createMessage(FMMessage::FM_UNABLE_TO_CREATE_DIRECTORY));
 
         $fileCachedPath = $this->dirCache . '/' . $hash . '.png';
         if (!file_exists($fileCachedPath)) {
