@@ -289,6 +289,11 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
 
         $fullPath = $this->getAbsolutePath($filePath);
         $hash = md5($filePath . $width . $height . filesize($fullPath) . filemtime($fullPath));
+
+        if (!file_exists($this->dirCache))
+            if (!mkdir($this->dirCache))
+                throw new Exception("Unable to create cache files directory '" . $this->dirCache . "''");
+
         $fileCachedPath = $this->dirCache . '/' . $hash . '.png';
         if (!file_exists($fileCachedPath)) {
 
