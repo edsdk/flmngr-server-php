@@ -16,16 +16,19 @@ $ composer require edsdk/flmngr-server-php
 
 ## Usage
 
-To handle some URL you want in your web application, create a file which will be entry point for all requests, e. g. `file-manager.php`: 
+To handle some URL you want in your web application, create a file which will be entry point for all requests, e. g. `flmngr.php`:
 
 ```php
 <?php
 
-    require __DIR__ . '/../vendor/autoload.php';
+    require __DIR__ . '/vendor/autoload.php';
+        
+    use EdSDK\FlmngrServer\FlmngrServer;
     
-    use EdSDK\FlmngrServer\Flmngr;
+    // Uncomment line below to enable CORS if your request domain and server domain are different
+    // header('Access-Control-Allow-Origin: *');
     
-    Flmngr::flmngrRequest(
+    FlmngrServer::flmngrRequest(
         array(
             'dirFiles' => 'path-to/files',
             'dirTmp'   => 'path-to/tmp',
@@ -33,6 +36,10 @@ To handle some URL you want in your web application, create a file which will be
         )
     );
 ```
+
+This file `flmngr.php` should be placed on the same level with `vendor` directory. If can be placed in some other place too, but do not forget to change path in `require` call.
+
+Do not forget to create directories you point to and set correct permissions (read and write) for access to them.
 
 If you want to allow access to uploaded files (usually you do) please do not forget to open access to files directory.
 
