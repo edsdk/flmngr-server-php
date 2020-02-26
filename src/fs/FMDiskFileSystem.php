@@ -88,7 +88,7 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
 
     function deleteDir($dirPath) {
         $fullPath = $this->getAbsolutePath($dirPath);
-        $res = unlink($fullPath);
+        $res = rmdir($fullPath);
         if ($res === FALSE)
             throw new MessageException(FMMessage::createMessage(FMMessage::FM_UNABLE_TO_DELETE_DIRECTORY));
     }
@@ -184,9 +184,8 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
 
     function deleteFiles($filesPaths) {
         for ($i=0; $i<count($filesPaths); $i++) {
-
             $fullPath = $this->getAbsolutePath($filesPaths[$i]);
-            $res = unlink($fullPath);
+            $res = is_dir($fullPath) ? rmdir($fullPath) : unlink($fullPath);
             if ($res === FALSE)
                 throw new MessageException(Message::createMessage(Message::UNABLE_TO_DELETE_FILE, $filesPaths[$i]));
         }

@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4a2b9509ad359ec6a5eb7493607b8c5f",
+    "content-hash": "dd4c13c5843e0afdc56efc842217923f",
     "packages": [
         {
             "name": "edsdk/file-uploader-server-php",
-            "version": "1.0.11",
+            "version": "1.0.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/edsdk/file-uploader-server-php.git",
-                "reference": "88137f9a9ecce75a71365ae7988d561015118f2e"
+                "reference": "84c2946fd9ee93a595d370ecde9c78b6a396e87d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/edsdk/file-uploader-server-php/zipball/88137f9a9ecce75a71365ae7988d561015118f2e",
-                "reference": "88137f9a9ecce75a71365ae7988d561015118f2e",
+                "url": "https://api.github.com/repos/edsdk/file-uploader-server-php/zipball/84c2946fd9ee93a595d370ecde9c78b6a396e87d",
+                "reference": "84c2946fd9ee93a595d370ecde9c78b6a396e87d",
                 "shasum": ""
             },
             "type": "library",
@@ -45,7 +45,7 @@
                 "server",
                 "upload"
             ],
-            "time": "2020-01-29T13:40:22+00:00"
+            "time": "2020-02-26T13:01:31+00:00"
         }
     ],
     "packages-dev": [],
