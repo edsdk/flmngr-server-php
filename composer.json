@@ -19,7 +19,7 @@
         }
     },
     "require": {
-        "edsdk/file-uploader-server-php": "1.0.12",
+        "edsdk/file-uploader-server-php": "^1.0.13",
         "ext-gd": "*",
         "ext-curl": "*",
         "ext-json": "*"
