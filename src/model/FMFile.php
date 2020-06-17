@@ -26,6 +26,4 @@ class FMFile {
         $this->h = $imageInfo->height == 0 ? null : $imageInfo->height;
     }
 
-    public function getFullPath() { return ; }
-
 }
