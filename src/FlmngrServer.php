@@ -36,8 +36,11 @@ class FlmngrServer {
                 FileUploaderServer::fileUploadRequest($configUploader);
                 return;
             }
-        } else
+        } else if ($_SERVER['REQUEST_METHOD'] === 'GET')
             $action = $_GET['action'];
+        else {
+            return;
+        }
 
         try {
             switch ($action) {
