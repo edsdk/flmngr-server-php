@@ -86,9 +86,23 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
         return $this->dirFiles . $this->getRelativePath($path);
     }
 
+    private function rmDirRecursive($dir) {
+      if (!file_exists($dir))
+        return true;
+      if (!is_dir($dir))
+        return unlink($dir);
+      foreach (scandir($dir) as $item) {
+        if ($item == '.' || $item == '..')
+          continue;
+        if (!$this->rmDirRecursive($dir . DIRECTORY_SEPARATOR . $item))
+          return false;
+      }
+      return rmdir($dir);
+    }
+
     function deleteDir($dirPath) {
         $fullPath = $this->getAbsolutePath($dirPath);
-        $res = rmdir($fullPath);
+        $res = $this->rmDirRecursive($fullPath);
         if ($res === FALSE)
             throw new MessageException(FMMessage::createMessage(FMMessage::FM_UNABLE_TO_DELETE_DIRECTORY));
     }
