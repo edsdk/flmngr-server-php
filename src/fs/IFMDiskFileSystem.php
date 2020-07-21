@@ -23,6 +23,7 @@ interface IFMDiskFileSystem {
     function copyFiles($filesPaths, $newPath);
     function moveFiles($filesPaths, $newPath);
     function moveDir($dirPath, $newPath);
+    function resizeFile($filePath, $newFileNameWithoutExt, $width, $height, $mode);
     function copyDir($dirPath, $newPath);
     function getDirZipArchive($dirPath, $out);
 

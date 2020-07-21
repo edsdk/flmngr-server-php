@@ -27,4 +27,6 @@ class FMMessage extends Message {
     const FM_DIR_CANNOT_BE_READ = 10012; // Directory can not be read
     const FM_ERROR_ON_COPYING_FILES = 10013; // Error on copying files
     const FM_ERROR_ON_MOVING_FILES = 10014; // Error on moving files
+
+    const FM_NOT_ERROR_NOT_NEEDED_TO_UPDATE = 10015; // Not an error. Request asked not to create a preview if it already exists
 }
