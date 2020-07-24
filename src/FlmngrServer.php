@@ -94,6 +94,9 @@ class FlmngrServer {
         case 'filePreview':
           $resp = FlmngrServer::reqFilePreview($config); // will die after valid response or throw MessageException
           break;
+        case 'getVersion':
+          $resp = FlmngrServer::getVersion();
+          break;
         default:
           $resp = new Response(Message::createMessage(Message::ACTION_NOT_FOUND), NULL);
       }
@@ -302,6 +305,10 @@ class FlmngrServer {
     } catch (MessageException $e) {
       return new Response($e->getFailMessage(), NULL);
     }
+  }
+
+  private static function getVersion() {
+    return new Response(NULL, ["version" => "2", "language" => "php"]);
   }
 
 }
