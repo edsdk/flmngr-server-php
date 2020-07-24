@@ -301,7 +301,10 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
     }
 
     if ($mode === "DO_NOT_UPDATE" && file_exists($dstPath)) {
-      return substr($dstPath, strlen($rootDir) + 1);
+      $url = substr($dstPath, strlen($this->dirFiles) + 1);
+      if (strpos($url, '/') !== 0)
+        $url = '/' . $url;
+      return $url;
     }
 
     $image = NULL;
@@ -352,7 +355,10 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
     ) {
       if (!file_exists($dstPath)) { // if we generated the preview in past, we need to update it in any case
         // return old file due to it has correct width/height to be used as a preview
-        return substr($srcPath, strlen($rootDir) + 1);
+        $url = substr($srcPath, strlen($this->dirFiles) + 1);
+        if (strpos($url, '/') !== 0)
+          $url = '/' . $url;
+        return $url;
       } else {
         $width = $originalWidth;
         $height = $originalHeight;
@@ -399,7 +405,10 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
       throw new MessageException(FMMessage::createMessage(FMMessage::FM_UNABLE_TO_WRITE_PREVIEW_IN_CACHE_DIR, $dstPath));
     }
 
-    return substr($dstPath, strlen($rootDir) + 1);
+    $url = substr($dstPath, strlen($this->dirFiles) + 1);
+    if (strpos($url, '/') !== 0)
+      $url = '/' . $url;
+    return $url;
   }
 
   function moveDir($dirPath, $newPath) {
