@@ -90,7 +90,11 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
       throw new MessageException(FMMessage::createMessage(FMMessage::FM_DIR_NAME_CONTAINS_INVALID_SYMBOLS));
     }
 
+    if (strpos($path, '/') !== 0)
+      $path = '/'. $path;
+
     $rootDirName = $this->getRootDirName();
+
     if (strpos($path, "/" . $rootDirName) !== 0) {
       throw new MessageException(FMMessage::createMessage(FMMessage::FM_DIR_NAME_INCORRECT_ROOT));
     }
@@ -186,14 +190,28 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
       $fFile = $fFiles[$i];
       $fileFullPath = $fullPath . '/' . $fFile;
       if (is_file($fileFullPath)) {
+        $preview = null;
         try {
           $imageInfo = $this->getImageInfo($fileFullPath);
+
+          list($previewFormat, $previewFile) = $this->getImagePreview($fileFullPath, 159, 139);
+          $previewData = '';
+          while (!feof($previewFile)) {
+            $previewData .= fread($previewFile, 8192);
+          }
+          fclose($previewFile);
+          $preview = "data:" . $previewFormat . ";base64," . base64_encode($previewData);
         } catch (Exception $e) {
+          error_log("Unable to process the image " . $fileFullPath);
+          error_log($e);
           $imageInfo = new ImageInfo();
           $imageInfo->width = NULL;
           $imageInfo->height = NULL;
         }
         $file = new FMFile($dirPath, $fFile, filesize($fileFullPath), filemtime($fileFullPath), $imageInfo);
+        if ($preview != null)
+          $file->preview = $preview;
+
         $files[] = $file;
       }
     }
@@ -285,10 +303,13 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
     $filePath =  '/' . $rootDir . $filePath;
     $srcPath = $this->getAbsolutePath($filePath);
     $index = strrpos($srcPath, "/");
+    $oldFileNameWithExt = substr($srcPath, $index + 1);
     $newExt = "png";
     $oldExt = strtolower(Utils::getExt($srcPath));
     if ($oldExt === "jpg" || $oldExt === "jpeg")
       $newExt = "jpg";
+    if ($oldExt === "webp")
+      $newExt = "webp";
     $dstPath = substr($srcPath, 0, $index) . "/" . $newFileNameWithoutExt . "." . $newExt;
 
     if (Utils::getNameWithoutExt($dstPath) === Utils::getNameWithoutExt($srcPath)) {
@@ -321,6 +342,18 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
       case 'image/bmp':
         $image = @imagecreatefromwbmp($srcPath);
         break;
+      case 'image/webp':
+        // If you get problems with WEBP preview creation, please consider updating GD > 2.2.4
+        // https://stackoverflow.com/questions/59621626/converting-webp-to-jpeg-in-with-php-gd-library
+        $image = @imagecreatefromwebp($srcPath);
+        break;
+      case 'image/svg+xml':
+        // Return SVG as is
+        $url = substr($srcPath, strlen($this->dirFiles) + 1);
+        if (strpos($url, '/') !== 0)
+          $url = '/' . $url;
+        return $url;
+
     }
 
     // Somewhy it can not read ONLY SOME JPEG files, we've caught it on Windows + IIS + PHP
@@ -353,7 +386,8 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
       !$needToFitWidth &&
       !$needToFitHeight
     ) {
-      if (!file_exists($dstPath)) { // if we generated the preview in past, we need to update it in any case
+      // if we generated the preview in past, we need to update it in any case
+      if (!file_exists($dstPath) || ($newFileNameWithoutExt . "." . $oldExt === $oldFileNameWithExt)) {
         // return old file due to it has correct width/height to be used as a preview
         $url = substr($srcPath, strlen($this->dirFiles) + 1);
         if (strpos($url, '/') !== 0)
@@ -398,6 +432,8 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
       $result = imagejpeg($resizedImage, $dstPath);
     else if ($ext === "bmp")
       $result = imagebmp($resizedImage, $dstPath);
+    else if ($ext === "webp")
+      $result = imagewebp($resizedImage, $dstPath);
     else
       $result = TRUE; // do not resize other formats (i. e. GIF)
 
@@ -466,6 +502,7 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
 
   private static function getMimeType($filePath) {
     $mimeType = NULL;
+    $filePath = strtolower($filePath);
     if (FMDiskFileSystem::endsWith($filePath, '.png')) {
       $mimeType = "image/png";
     }
@@ -478,6 +515,13 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
     if (FMDiskFileSystem::endsWith($filePath, '.jpg') || FMDiskFileSystem::endsWith($filePath, '.jpeg')) {
       $mimeType = "image/jpeg";
     }
+    if (FMDiskFileSystem::endsWith($filePath, '.webp')) {
+      $mimeType = "image/webp";
+    }
+    if (FMDiskFileSystem::endsWith($filePath, '.svg')) {
+      $mimeType = "image/svg+xml";
+    }
+
     return $mimeType;
   }
 
@@ -509,6 +553,13 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
         case 'image/bmp':
           $image = @imagecreatefromwbmp($fullPath);
           break;
+        case 'image/webp':
+          // If you get problems with WEBP preview creation, please consider updating GD > 2.2.4
+          // https://stackoverflow.com/questions/59621626/converting-webp-to-jpeg-in-with-php-gd-library
+          $image = @imagecreatefromwebp($fullPath);
+          break;
+        case 'image/svg+xml':
+          return ["image/svg+xml", fopen($fullPath, 'rb')];
       }
 
       // Somewhy it can not read ONLY SOME JPEG files, we've caught it on Windows + IIS + PHP

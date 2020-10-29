@@ -308,7 +308,7 @@ class FlmngrServer {
   }
 
   private static function getVersion() {
-    return new Response(NULL, ["version" => "2", "language" => "php"]);
+    return new Response(NULL, ["version" => "3", "language" => "php"]);
   }
 
 }
