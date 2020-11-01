@@ -190,17 +190,8 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
       $fFile = $fFiles[$i];
       $fileFullPath = $fullPath . '/' . $fFile;
       if (is_file($fileFullPath)) {
-        $preview = null;
         try {
           $imageInfo = $this->getImageInfo($fileFullPath);
-
-          list($previewFormat, $previewFile) = $this->getImagePreview($fileFullPath, 159, 139);
-          $previewData = '';
-          while (!feof($previewFile)) {
-            $previewData .= fread($previewFile, 8192);
-          }
-          fclose($previewFile);
-          $preview = "data:" . $previewFormat . ";base64," . base64_encode($previewData);
         } catch (Exception $e) {
           error_log("Unable to process the image " . $fileFullPath);
           error_log($e);
@@ -209,8 +200,6 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
           $imageInfo->height = NULL;
         }
         $file = new FMFile($dirPath, $fFile, filesize($fileFullPath), filemtime($fileFullPath), $imageInfo);
-        if ($preview != null)
-          $file->preview = $preview;
 
         $files[] = $file;
       }
@@ -220,6 +209,9 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
   }
 
   private static function getImageInfo($file) {
+
+    if (strpos($file, ".webp") !== FALSE)
+        throw new MessageException(Message::createMessage(Message::IMAGE_PROCESS_ERROR));
 
     $size = getimagesize($file);
     if ($size === FALSE) {
