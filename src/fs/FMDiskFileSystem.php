@@ -210,9 +210,6 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
 
   private static function getImageInfo($file) {
 
-    if (strpos($file, ".webp") !== FALSE)
-        throw new MessageException(Message::createMessage(Message::IMAGE_PROCESS_ERROR));
-
     $size = getimagesize($file);
     if ($size === FALSE) {
       throw new MessageException(Message::createMessage(Message::IMAGE_PROCESS_ERROR));
