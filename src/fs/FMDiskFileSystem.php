@@ -193,8 +193,6 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
         try {
           $imageInfo = $this->getImageInfo($fileFullPath);
         } catch (Exception $e) {
-          error_log("Unable to process the image " . $fileFullPath);
-          error_log($e);
           $imageInfo = new ImageInfo();
           $imageInfo->width = NULL;
           $imageInfo->height = NULL;
