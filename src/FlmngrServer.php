@@ -310,8 +310,7 @@ class FlmngrServer {
     }
   }
 
-  private static function upload($config)
-  {
+  private static function upload($config){
       try {
           $fileSystem = new FMDiskFileSystem($config);
           $configUploader = [
