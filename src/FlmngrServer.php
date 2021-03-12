@@ -94,6 +94,9 @@ class FlmngrServer {
         case 'filePreview':
           $resp = FlmngrServer::reqFilePreview($config); // will die after valid response or throw MessageException
           break;
+        case 'upload':
+          $resp = FlmngrServer::upload($config); // will die after valid response or throw MessageException
+          break;
         case 'getVersion':
           $resp = FlmngrServer::getVersion();
           break;
@@ -305,6 +308,26 @@ class FlmngrServer {
     } catch (MessageException $e) {
       return new Response($e->getFailMessage(), NULL);
     }
+  }
+
+  private static function upload($config){
+      try {
+          $fileSystem = new FMDiskFileSystem($config);
+          $configUploader = [
+              'dirFiles' => $config['dirFiles'],
+              'dirTmp' => $config['dirTmp'],
+              'config' => isset($config['uploader'])
+                  ? $config['uploader']
+                  : [],
+          ];
+          $resp = FileUploaderServer::quickUpload(
+              $configUploader,
+              $fileSystem
+          );
+          return $resp;
+      } catch (MessageException $e) {
+          return new Response($e->getFailMessage(), null);
+      }
   }
 
   private static function getVersion() {

@@ -138,7 +138,7 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
     }
 
     $fullPath = $this->getAbsolutePath($dirPath) . "/" . $name;
-    $res = mkdir($fullPath, 0777, TRUE);
+    $res = file_exists($fullPath) || mkdir($fullPath, 0777, true);
     if ($res === FALSE) {
       throw new MessageException(FMMessage::createMessage(FMMessage::FM_UNABLE_TO_CREATE_DIRECTORY));
     }
