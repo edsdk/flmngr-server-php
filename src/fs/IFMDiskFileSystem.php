@@ -27,4 +27,7 @@ interface IFMDiskFileSystem {
     function copyDir($dirPath, $newPath);
     function getDirZipArchive($dirPath, $out);
 
+    function getAbsolutePath($path);
+
+
 }

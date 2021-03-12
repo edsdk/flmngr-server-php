@@ -102,7 +102,7 @@ class FMDiskFileSystem implements IFMDiskFileSystem {
     return substr($path, strlen("/" . $rootDirName));
   }
 
-  private function getAbsolutePath($path) {
+  function getAbsolutePath($path) {
     return $this->dirFiles . $this->getRelativePath($path);
   }
 
