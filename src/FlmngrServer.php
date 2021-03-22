@@ -311,23 +311,23 @@ class FlmngrServer {
   }
 
   private static function upload($config){
-      try {
-          $fileSystem = new FMDiskFileSystem($config);
-          $configUploader = [
-              'dirFiles' => $config['dirFiles'],
-              'dirTmp' => $config['dirTmp'],
-              'config' => isset($config['uploader'])
-                  ? $config['uploader']
-                  : [],
-          ];
-          $resp = FileUploaderServer::quickUpload(
-              $configUploader,
-              $fileSystem
-          );
-          return $resp;
-      } catch (MessageException $e) {
-          return new Response($e->getFailMessage(), null);
-      }
+    try {
+      $configUploader = [
+          'dirFiles' => $config['dirFiles'],
+          'dirTmp' => $config['dirTmp'],
+          'config' => isset($config['uploader'])
+              ? $config['uploader']
+              : [],
+      ];
+
+      $resp = FileUploaderServer::fileUploadRequest(
+          $configUploader,
+          true
+      );
+      return $resp;
+  } catch (MessageException $e) {
+      return new Response($e->getFailMessage(), null);
+  }
   }
 
   private static function getVersion() {
