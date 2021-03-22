@@ -34,7 +34,7 @@ class FlmngrServer {
           "dirTmp" => $config["dirTmp"],
           "config" => isset($config["uploader"]) ? $config["uploader"] : [],
         ];
-        FileUploaderServer::fileUploadRequest($configUploader);
+        FileUploaderServer::fileUploadRequest($configUploader, $_POST, $_FILES);
         return;
       }
     }
@@ -320,11 +320,12 @@ class FlmngrServer {
               : [],
       ];
 
-      $resp = FileUploaderServer::fileUploadRequest(
-          $configUploader,
-          true
-      );
-      return $resp;
+      $post = [
+        'action' => $_POST['action'],
+        'dir' => $_POST['dir'],
+        'data' => JsonCodec::s_toJson(['action' => $_POST['action'], 'dir' => $_POST['dir']])
+      ];
+      FileUploaderServer::fileUploadRequest($configUploader, $post, $_FILES);
   } catch (MessageException $e) {
       return new Response($e->getFailMessage(), null);
   }
