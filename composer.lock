@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5dbd16b814ecc5055c75abf603f67aae",
+    "content-hash": "fd7eff1611af9d9a4090071dba311075",
     "packages": [
         {
             "name": "edsdk/file-uploader-server-php",
-            "version": "1.0.30",
+            "version": "1.0.32",
             "source": {
                 "type": "git",
                 "url": "https://github.com/edsdk/file-uploader-server-php.git",
-                "reference": "fa47da21ba59f85a56e1e4ac2b21852789f1af91"
+                "reference": "5f84c9cf96c0285f51545c8a500c0dec386ad5e4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/edsdk/file-uploader-server-php/zipball/fa47da21ba59f85a56e1e4ac2b21852789f1af91",
-                "reference": "fa47da21ba59f85a56e1e4ac2b21852789f1af91",
+                "url": "https://api.github.com/repos/edsdk/file-uploader-server-php/zipball/5f84c9cf96c0285f51545c8a500c0dec386ad5e4",
+                "reference": "5f84c9cf96c0285f51545c8a500c0dec386ad5e4",
                 "shasum": ""
             },
             "type": "library",
@@ -47,9 +47,9 @@
             ],
             "support": {
                 "issues": "https://github.com/edsdk/file-uploader-server-php/issues",
-                "source": "https://github.com/edsdk/file-uploader-server-php/tree/1.0.30"
+                "source": "https://github.com/edsdk/file-uploader-server-php/tree/1.0.32"
             },
-            "time": "2020-12-03T11:10:30+00:00"
+            "time": "2021-03-22T15:24:48+00:00"
         }
     ],
     "packages-dev": [],
