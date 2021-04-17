@@ -25,6 +25,16 @@ class FlmngrServer {
 
     $action = NULL;
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+      // Default action is "upload" if requester tries to upload a file
+      // This is support for generic files upload in WYSIWYG editors
+      if ((isset($_FILES["file"]) || isset($_FILES["upload"])) && (!isset($_POST["action"])) && (!isset($_POST['data']))) {
+        $json = array(
+          "action" => "upload"
+        );
+        $_POST["data"] = json_encode($json);
+      }
+
       if (isset($_POST['action'])) {
         $action = $_POST['action'];
       }
