@@ -275,9 +275,9 @@ class FlmngrServer {
   }
 
   private static function reqFilePreview($config) {
-    $filePath = $_GET['f'];
-    $width = $_GET['width'];
-    $height = $_GET['height'];
+    $filePath = isset($_GET['f']) ? $_GET['f'] : $_POST['f'];
+    $width = isset($_GET['width']) ? $_GET['width'] : $_POST['width'];
+    $height = isset($_GET['height']) ? $_GET['height'] : $_POST['height'];
 
     try {
       $fileSystem = new FMDiskFileSystem($config);
