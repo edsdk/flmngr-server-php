@@ -12,50 +12,54 @@ namespace EdSDK\FlmngrServer;
 use EdSDK\FlmngrServer\resp\Response;
 use Exception;
 
-use EdSDK\FileUploaderServer\FileUploaderServer;
-use EdSDK\FileUploaderServer\lib\JsonCodec;
-use EdSDK\FileUploaderServer\lib\action\resp\Message;
-use EdSDK\FileUploaderServer\lib\MessageException;
-
+use EdSDK\FlmngrServer\FileUploaderServer;
+use EdSDK\FlmngrServer\lib\JsonCodec;
+use EdSDK\FlmngrServer\lib\action\resp\Message;
+use EdSDK\FlmngrServer\lib\MessageException;
+use EdSDK\FlmngrServer\FlmngrFrontController;
 use EdSDK\FlmngrServer\fs\FMDiskFileSystem;
 
 class FlmngrServer {
 
   static function flmngrRequest($config) {
 
+
+    $request = (new FlmngrFrontController())->request;
+
     $action = NULL;
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($request->requestMethod === 'POST') {
 
       // Default action is "upload" if requester tries to upload a file
       // This is support for generic files upload in WYSIWYG editors
-      if ((isset($_FILES["file"]) || isset($_FILES["upload"])) && (!isset($_POST["action"])) && (!isset($_POST['data']))) {
+      if ((isset($request->files["file"]) || isset($request->files["upload"])) && (!isset($request->post["action"])) && (!isset($request->post['data']))) {
         $json = array(
           "action" => "upload"
         );
-        $_POST["data"] = json_encode($json);
+        $request->post["data"] = json_encode($json);
       }
 
-      if (isset($_POST['action'])) {
-        $action = $_POST['action'];
+      if (isset($request->post['action'])) {
+        $action = $request->post['action'];
       }
-      if ($action == NULL && isset($_POST["data"])) {
+      if ($action == NULL && isset($request->post["data"])) {
         $configUploader = [
           "dirFiles" => $config["dirFiles"],
           "dirTmp" => $config["dirTmp"],
           "config" => isset($config["uploader"]) ? $config["uploader"] : [],
         ];
-        FileUploaderServer::fileUploadRequest($configUploader, $_POST, $_FILES);
+        FileUploaderServer::fileUploadRequest($configUploader, $request->post, $request->files);
         return;
       }
     }
     else {
-      if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        $action = $_GET['action'];
+      if ($request->requestMethod === 'GET') {
+        $action = $request->get['action'];
       }
       else {
         return;
       }
     }
+    $config['request'] = $request;
 
     try {
       switch ($action) {
@@ -131,8 +135,8 @@ class FlmngrServer {
   }
 
   private static function reqDirCopy($config) {
-    $dirPath = $_POST['d'];
-    $newPath = $_POST['n'];
+    $dirPath = $config['request']->post['d'];
+    $newPath = $config['request']->post['n'];
     try {
       $fileSystem = new FMDiskFileSystem($config);
       $fileSystem->copyDir($dirPath, $newPath);
@@ -143,8 +147,8 @@ class FlmngrServer {
   }
 
   private static function reqDirCreate($config) {
-    $dirPath = $_POST['d'];
-    $name = $_POST['n'];
+    $dirPath = $config['request']->post['d'];
+    $name = $config['request']->post['n'];
     try {
       $fileSystem = new FMDiskFileSystem($config);
       $fileSystem->createDir($dirPath, $name);
@@ -155,7 +159,7 @@ class FlmngrServer {
   }
 
   private static function reqDirDelete($config) {
-    $dirPath = $_POST['d'];
+    $dirPath = $config['request']->post['d'];
     try {
       $fileSystem = new FMDiskFileSystem($config);
       $fileSystem->deleteDir($dirPath);
@@ -166,7 +170,7 @@ class FlmngrServer {
   }
 
   private static function reqDirDownload($config) {
-    $dirPath = $_GET['d'];
+    $dirPath = $config['request']->get['d'];
     // TODO:
   }
 
@@ -181,8 +185,8 @@ class FlmngrServer {
   }
 
   private static function reqDirMove($config) {
-    $dirPath = $_POST['d'];
-    $newPath = $_POST['n'];
+    $dirPath = $config['request']->post['d'];
+    $newPath = $config['request']->post['n'];
     try {
       $fileSystem = new FMDiskFileSystem($config);
       $fileSystem->moveDir($dirPath, $newPath);
@@ -193,8 +197,8 @@ class FlmngrServer {
   }
 
   private static function reqDirRename($config) {
-    $dirPath = $_POST['d'];
-    $newName = $_POST['n'];
+    $dirPath = $config['request']->post['d'];
+    $newName = $config['request']->post['n'];
     try {
       $fileSystem = new FMDiskFileSystem($config);
       $fileSystem->renameDir($dirPath, $newName);
@@ -205,8 +209,8 @@ class FlmngrServer {
   }
 
   private static function reqFileCopy($config) {
-    $files = $_POST['fs'];
-    $newPath = $_POST['n'];
+    $files = $config['request']->post['fs'];
+    $newPath = $config['request']->post['n'];
 
     $filesPaths = preg_split("/\|/", $files);
 
@@ -220,7 +224,7 @@ class FlmngrServer {
   }
 
   private static function reqFileDelete($config) {
-    $files = $_POST['fs'];
+    $files = $config['request']->post['fs'];
 
     $filesPaths = preg_split("/\|/", $files);
 
@@ -234,7 +238,7 @@ class FlmngrServer {
   }
 
   private static function reqFileList($config) {
-    $path = $_POST['d'];
+    $path = $config['request']->post['d'];
 
     try {
       $fileSystem = new FMDiskFileSystem($config);
@@ -246,8 +250,8 @@ class FlmngrServer {
   }
 
   private static function reqFileMove($config) {
-    $files = $_POST['fs'];
-    $newPath = $_POST['n'];
+    $files = $config['request']->post['fs'];
+    $newPath = $config['request']->post['n'];
 
     $filesPaths = preg_split("/\|/", $files);
 
@@ -261,7 +265,7 @@ class FlmngrServer {
   }
 
   private static function reqFileOriginal($config) {
-    $filePath = $_GET['f'];
+    $filePath = $config['request']->get['f'];
 
     try {
       $fileSystem = new FMDiskFileSystem($config);
@@ -275,9 +279,9 @@ class FlmngrServer {
   }
 
   private static function reqFilePreview($config) {
-    $filePath = isset($_GET['f']) ? $_GET['f'] : $_POST['f'];
-    $width = isset($_GET['width']) ? $_GET['width'] : $_POST['width'];
-    $height = isset($_GET['height']) ? $_GET['height'] : $_POST['height'];
+    $filePath = $config['request']->get['f'];
+    $width = $config['request']->get['width'];
+    $height = $config['request']->get['height'];
 
     try {
       $fileSystem = new FMDiskFileSystem($config);
@@ -291,12 +295,12 @@ class FlmngrServer {
   }
 
   private static function reqFileResize($config) {
-    $filePath = $_POST['f'];
-    $newFileNameWithoutExt = $_POST['n'];
-    $maxWidth = $_POST['mw'];
-    $maxHeight = $_POST['mh'];
+    $filePath = $config['request']->post['f'];
+    $newFileNameWithoutExt = $config['request']->post['n'];
+    $maxWidth = $config['request']->post['mw'];
+    $maxHeight = $config['request']->post['mh'];
 
-    $mode = $_POST['mode'];
+    $mode = $config['request']->post['mode'];
 
     try {
       $fileSystem = new FMDiskFileSystem($config);
@@ -308,8 +312,8 @@ class FlmngrServer {
   }
 
   private static function reqFileRename($config) {
-    $filePath = $_POST['f'];
-    $newName = $_POST['n'];
+    $filePath = $config['request']->post['f'];
+    $newName = $config['request']->post['n'];
 
     try {
       $fileSystem = new FMDiskFileSystem($config);
@@ -328,14 +332,15 @@ class FlmngrServer {
           'config' => isset($config['uploader'])
               ? $config['uploader']
               : [],
+          'request' => $config['request']
       ];
 
       $post = [
-        'action' => $_POST['action'],
-        'dir' => $_POST['dir'],
-        'data' => JsonCodec::s_toJson(['action' => $_POST['action'], 'dir' => $_POST['dir']])
+        'action' => $config['request']->post['action'],
+        'dir' => $config['request']->post['dir'],
+        'data' => JsonCodec::s_toJson(['action' => $config['request']->post['action'], 'dir' => $config['request']->post['dir']])
       ];
-      FileUploaderServer::fileUploadRequest($configUploader, $post, $_FILES);
+      FileUploaderServer::fileUploadRequest($configUploader, $post, $config['request']->files);
   } catch (MessageException $e) {
       return new Response($e->getFailMessage(), null);
   }
