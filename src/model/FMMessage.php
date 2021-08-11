@@ -9,10 +9,10 @@
 
 namespace EdSDK\FlmngrServer\model;
 
-use EdSDK\FileUploaderServer\lib\action\resp\Message;
+use EdSDK\FlmngrServer\lib\action\resp\Message;
 
-class FMMessage extends Message {
-
+class FMMessage extends Message
+{
     const FM_FILE_DOES_NOT_EXIST = 10001; // File does not exist: %1
     const FM_UNABLE_TO_WRITE_PREVIEW_IN_CACHE_DIR = 10002; // Unable to write a preview into cache directory
     const FM_UNABLE_TO_CREATE_PREVIEW = 10003; // Unable to create a preview
