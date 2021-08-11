@@ -28,13 +28,15 @@ To handle some URL you want in your web application, create a file which will be
     // Uncomment line below to enable CORS if your request domain and server domain are different
     // header('Access-Control-Allow-Origin: *');
     
-    FlmngrServer::flmngrRequest(
-        array(
-            'dirFiles' => 'path-to/files',
-            'dirTmp'   => 'path-to/tmp',
-            'dirCache'   => 'path-to/cache'
-        )
-    );
+    echo FlmngrServer::flmngrRequest([
+    'dirFiles' => __DIR__ . '/files',
+    'dirTmp' => __DIR__ . '/tmp',
+    'dirCache' => __DIR__ . '/cache',
+    'storage' => [
+        'type' => 'FMDiskFileSystem',
+        'config' => [ ],
+    ],
+]);
 ```
 
 This file `flmngr.php` should be placed on the same level with `vendor` directory. If can be placed in some other place too, but do not forget to change path in `require` call.
