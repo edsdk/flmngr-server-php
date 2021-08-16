@@ -165,17 +165,10 @@ class ActionUploadCommit extends AActionUploadId
             $fileToCommit = $filesToCommit[$i];
             $fileCommited = $fileToCommit->commit($req->dir, $req->autoRename);
             $filesCommited[] = $fileCommited;
-            try {
-                $fileCommited->applySizes($req->sizes);
-            } catch (MessageException $e) {
-                for ($j = 0; $j < count($filesCommited); $j++) {
-                    $filesCommited[$j]->delete();
                 }
-                throw $e;
-            }
-        }
 
         // 2. Remove uploadAndCommit directory
+
         if (!$this->m_config->doKeepUploads()) {
             try {
                 UtilsPHP::delete(
@@ -188,6 +181,7 @@ class ActionUploadCommit extends AActionUploadId
         }
 
         // 3. Send response with the list of files copied
+
         $files = [];
         for ($i = 0; $i < count($filesCommited); $i++) {
             $files[] = $filesCommited[$i]->getData();

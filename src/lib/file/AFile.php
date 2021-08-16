@@ -44,10 +44,12 @@ abstract class AFile
         }
 
         $data->isImage = $this->isImage();
+
         $data->sizes = [];
         if ($data->isImage) {
             $data->width = $this->getImageWidth();
             $data->height = $this->getImageHeight();
+
             if ($data->isCommited) {
                 if ($this->m_mainFile === null) {
                     // m_mainFile is property of FileCommited
@@ -184,7 +186,9 @@ abstract class AFile
 
     public function getImageWidth()
     {
-        if ($size = @getimagesize($this->getFullPath())) {
+        if (
+            $size = $this->m_config->getFS()->getImageSize($this->getFullPath())
+        ) {
             return $size === null ? -1 : $size[0];
         } else {
             throw new MessageException(
@@ -195,7 +199,9 @@ abstract class AFile
 
     public function getImageHeight()
     {
-        if ($size = @getimagesize($this->getFullPath())) {
+        if (
+            $size = $this->m_config->getFS()->getImageSize($this->getFullPath())
+        ) {
             return $size === null ? -1 : $size[1];
         } else {
             throw new MessageException(
@@ -248,6 +254,24 @@ abstract class AFile
             false
         );
         $this->setName($name);
+    }
+
+    public function copyCommited($dstFile)
+    {
+        try {
+            $this->m_config
+                ->getFS()
+                ->copyCommited($this->getFullPath(), $dstFile->getFullPath());
+        } catch (Exception $e) {
+            error_log($e);
+            throw new MessageException(
+                Message::createMessage(
+                    Message::UNABLE_TO_COPY_FILE,
+                    $this->getName(),
+                    $dstFile->getName()
+                )
+            );
+        }
     }
 
     public function copyTo($dstFile)

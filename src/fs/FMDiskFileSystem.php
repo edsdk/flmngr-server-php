@@ -12,6 +12,7 @@ namespace EdSDK\FlmngrServer\fs;
 use EdSDK\FlmngrServer\lib\file\FileCommited;
 use EdSDK\FlmngrServer\lib\action\resp\Message;
 use EdSDK\FlmngrServer\lib\file\Utils;
+use EdSDK\FlmngrServer\lib\file\UtilsPHP;
 use EdSDK\FlmngrServer\lib\MessageException;
 use EdSDK\FlmngrServer\model\FMDir;
 use EdSDK\FlmngrServer\model\FMFile;
@@ -265,6 +266,11 @@ class FMDiskFileSystem implements IFMDiskFileSystem
         }
 
         return $files;
+    }
+
+    public function getImageSize($file)
+    {
+        return @getimagesize($file);
     }
 
     private static function getImageInfo($file)
@@ -547,6 +553,11 @@ class FMDiskFileSystem implements IFMDiskFileSystem
             $url = '/' . $url;
         }
         return $url;
+    }
+
+    function copyCommited($from, $to)
+    {
+        return UtilsPHP::copyFile($from, $to);
     }
 
     function moveDir($dirPath, $newPath)
