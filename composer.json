@@ -11,6 +11,10 @@
         {
             "name": "EdSDK",
             "email": "edsdk@edsdk.com"
+        },
+        {
+            "name": "Ilia Kandaurov",
+            "email": "ilia@kandaurov.su"
         }
     ],
     "autoload": {

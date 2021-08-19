@@ -150,7 +150,8 @@ class FileUploaded extends AFile
         if ($autoRename) {
             $file->setFreeFileName();
         }
-        $this->copyTo($file);
+        $this->copyCommited($file);
+        // $this->copyTo($file);
         return $file;
     }
 
