@@ -11,6 +11,7 @@ namespace EdSDK\FlmngrServer\servlet;
 
 use EdSDK\FlmngrServer\lib\config\IConfig;
 use EdSDK\FlmngrServer\lib\file\UtilsPHP;
+use EdSDK\FlmngrServer\fs\IFMDiskFileSystem;
 use Exception;
 
 class ServletConfig implements IConfig
@@ -23,6 +24,11 @@ class ServletConfig implements IConfig
     {
         $this->m_conf = $m_conf;
         $this->request = $m_conf['request'];
+    }
+
+    public function getFS(): IFMDiskFileSystem
+    {
+        return $this->m_conf['filesystem'];
     }
 
     public function setTestConfig($testConf)

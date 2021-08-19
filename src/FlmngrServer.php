@@ -48,6 +48,7 @@ class FlmngrServer
                 $configUploader = [
                     'dirFiles' => $config['dirFiles'],
                     'dirTmp' => $config['dirTmp'],
+                    'filesystem' => $config['filesystem'],
                     'config' => isset($config['uploader'])
                         ? $config['uploader']
                         : [],
