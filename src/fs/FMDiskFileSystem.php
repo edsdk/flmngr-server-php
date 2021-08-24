@@ -243,7 +243,7 @@ class FMDiskFileSystem implements IFMDiskFileSystem
             );
         }
 
-        $files = array(); // file name to sort value (file name / date / size)
+        $files = array(); // file name to sort values (like [filename, date, size])
         $formatFiles = array(); // format to array(owner file name to file name)
         foreach ($formatIds as $formatId) {
             $formatFiles[$formatId] = array();
@@ -279,17 +279,20 @@ class FMDiskFileSystem implements IFMDiskFileSystem
                 $name = $name . '.' . $ext;
 
             if ($filter == NULL || $filter == '' || strpos($name, $filter) !== FALSE) {
+                $fieldName = $file;
+                $fieldDate = filemtime($fullPath . '/' . $file);
+                $fieldSize = filesize($fullPath . '/' . $file);
                 if ($format == NULL) {
                     switch ($orderBy) {
                         case 'date':
-                            $files[$file] = filemtime($fullPath . '/' . $file);
+                            $files[$file] = [$fieldDate, $fieldName, $fieldSize];
                             break;
                         case 'size':
-                            $files[$file] = filesize($fullPath . '/' . $file);
+                            $files[$file] = [$fieldSize, $fieldName, $fieldDate];
                             break;
                         case 'name':
                         default:
-                            $files[$file] = $file;
+                            $files[$file] = [$fieldName, $fieldDate, $fieldSize];
                             break;
                     }
                 } else {
@@ -309,11 +312,28 @@ class FMDiskFileSystem implements IFMDiskFileSystem
             }
         }
 
-        arsort($files);
+
+        uasort($files, function ($arr1, $arr2) {
+
+            for ($i=0; $i<count($arr1); $i++) {
+                if (is_string($arr1[$i])) {
+                    $v = strnatcmp($arr1[$i], $arr2[$i]);
+                    if ($v !== 0)
+                        return $v;
+                } else {
+                    if ($arr1[$i] > $arr2[$i])
+                        return 1;
+                    if ($arr1[$i] < $arr2[$i])
+                        return -1;
+                }
+            }
+
+            return 0;
+        });
 
         $fileNames = array_keys($files);
 
-        if (strtolower($orderAsc) === "true") { // arsort is "desc" function
+        if (strtolower($orderAsc) !== "true") {
             $fileNames = array_reverse($fileNames);
         }
 
@@ -345,7 +365,6 @@ class FMDiskFileSystem implements IFMDiskFileSystem
             if (Utils::isImage($fileName)) {
 
                 $imageInfo = $this->getCachedImageInfo($dirPath . '/' . $fileName);
-                error_log(print_r($imageInfo, true));
                 $resultFile['width'] = $imageInfo['width'];
                 $resultFile['height'] = $imageInfo['height'];
                 $resultFile['blurHash'] = isset($imageInfo['blurHash']) ? $imageInfo['blurHash'] : NULL;
@@ -983,7 +1002,6 @@ class FMDiskFileSystem implements IFMDiskFileSystem
             for ($y = 0; $y < $height; $y++) {
                 $row = [];
                 for ($x = 0; $x < $width; $x++) {
-                    //error_log(imagesx($resizedImage) . "x" . imagesy($resizedImage) . "  /  "  . $x . "x" . $y . "  /  " . $width . "x" . $height . " -- " . $fileCachedPath);
                     $index = imagecolorat($resizedImage, $x, $y);
                     $colors = imagecolorsforindex($resizedImage, $index);
                     $row[] = [$colors['red'], $colors['green'], $colors['blue']];
