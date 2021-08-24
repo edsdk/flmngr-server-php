@@ -13,7 +13,7 @@ interface IFMDiskFileSystem {
 
     function getImagePreview($filePath, $width, $height);
     function getImageOriginal($filePath);
-    function getDirs();
+    function getDirs($hideDirs);
     function deleteDir($dirPath);
     function createDir($dirPath, $name);
     function renameFile($filePath, $newName);

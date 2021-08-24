@@ -5,9 +5,9 @@ use EdSDK\FlmngrServer\lib\IFmRequest;
 use EdSDK\FlmngrServer\fs\IFMDiskFileSystem;
 class FlmngrFrontController
 {
-    public IFmRequest $request;
+    public $request;
 
-    public IFMDiskFileSystem $filesystem;
+    public $filesystem;
 
     public function __construct($config)
     {

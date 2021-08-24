@@ -9,7 +9,7 @@
 
 namespace EdSDK\FlmngrServer\fs;
 
-use EdSDK\FlmngrServer\lib\file\FileCommited;
+use EdSDK\FlmngrServer\lib\file\blurHash\Blurhash;
 use EdSDK\FlmngrServer\lib\action\resp\Message;
 use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\file\UtilsPHP;
@@ -32,7 +32,7 @@ class FMDiskFileSystem implements IFMDiskFileSystem
         $this->dirCache = $config['dirCache'];
     }
 
-    function getDirs()
+    function getDirs($hideDirs)
     {
         $dirs = [];
         $fDir = $this->dirFiles;
@@ -42,13 +42,20 @@ class FMDiskFileSystem implements IFMDiskFileSystem
             );
         }
 
-        $this->getDirs__fill($dirs, $fDir, '');
+        $this->getDirs__fill($dirs, $fDir, $hideDirs, '');
         return $dirs;
     }
 
-    private function getDirs__fill(&$dirs, $fDir, $path)
+    private function getDirs__fill(&$dirs, $fDir, $hideDirs, $path)
     {
         $files = scandir($fDir);
+
+        $i = strrpos($fDir, '/');
+        if ($i !== false) {
+            $dirName = substr($fDir, $i + 1);
+        } else {
+            $dirName = $fDir;
+        }
 
         if ($files === false) {
             throw new MessageException(
@@ -74,23 +81,16 @@ class FMDiskFileSystem implements IFMDiskFileSystem
             }
         }
 
-        $i = strrpos($fDir, '/');
-        if ($i !== false) {
-            $dirName = substr($fDir, $i + 1);
-        } else {
-            $dirName = $fDir;
-        }
-        // dump($dirName);
-        // die();
         $dir = new FMDir($dirName, $path, $filesCount, $dirsCount);
         $dirs[] = $dir;
 
         for ($i = 0; $i < count($files); $i++) {
             if ($files[$i] !== '.' && $files[$i] !== '..') {
-                if (is_dir($fDir . '/' . $files[$i])) {
+                if (is_dir($fDir . '/' . $files[$i]) && array_search($files[$i], $hideDirs) === FALSE) {
                     $this->getDirs__fill(
                         $dirs,
                         $fDir . '/' . $files[$i],
+                        $hideDirs,
                         $path . (strlen($path) > 0 ? '/' : '') . $dirName
                     );
                 }
@@ -220,6 +220,164 @@ class FMDiskFileSystem implements IFMDiskFileSystem
     public function renameDir($dirPath, $newName)
     {
         $this->renameFileOrDir($dirPath, $newName);
+    }
+
+    public function getFilesPaged(
+        $dirPath,
+        $maxFiles,
+        $lastFile,
+        $lastIndex,
+        $hideFiles,
+        $filter,
+        $orderBy,
+        $orderAsc,
+        $formatIds,
+        $formatSuffixes
+    )
+    {
+        $fullPath = $this->getAbsolutePath($dirPath);
+
+        if (!is_dir($fullPath)) {
+            throw new MessageException(
+                Message::createMessage(Message::DIR_DOES_NOT_EXIST, $dirPath)
+            );
+        }
+
+        $files = array(); // file name to sort value (file name / date / size)
+        $formatFiles = array(); // format to array(owner file name to file name)
+        foreach ($formatIds as $formatId) {
+            $formatFiles[$formatId] = array();
+        }
+
+        $fFiles = scandir($fullPath);
+        if ($fFiles === false) {
+            throw new MessageException(
+                FMMessage::createMessage(FMMessage::FM_DIR_CANNOT_BE_READ)
+            );
+        }
+
+        foreach ($fFiles as $file) {
+
+            if ($file == '.' || $file == '..' || !is_file($fullPath . '/' . $file))
+                continue;
+
+            $format = null;
+            $name = Utils::getNameWithoutExt($file);
+            if (Utils::isImage($file)) {
+                for ($i = 0; $i < count($formatIds); $i++) {
+                    $isFormatFile = FMDiskFileSystem::endsWith($name, $formatSuffixes[$i]);
+                    if ($isFormatFile) {
+                        $format = $formatSuffixes[$i];
+                        $name = substr($name, 0, -strlen($formatSuffixes[$i]));
+                        break;
+                    }
+                }
+            }
+
+            $ext = Utils::getExt($file);
+            if ($ext != NULL)
+                $name = $name . '.' . $ext;
+
+            if ($filter == NULL || $filter == '' || strpos($name, $filter) !== FALSE) {
+                if ($format == NULL) {
+                    switch ($orderBy) {
+                        case 'date':
+                            $files[$file] = filemtime($fullPath . '/' . $file);
+                            break;
+                        case 'size':
+                            $files[$file] = filesize($fullPath . '/' . $file);
+                            break;
+                        case 'name':
+                        default:
+                            $files[$file] = $file;
+                            break;
+                    }
+                } else {
+                    $formatFiles[$format][$name] = $file;
+                }
+            }
+        }
+
+        // Remove files which need to be hidden, and their formats too
+        foreach ($files as $file => $v) {
+            if (array_search($file, $hideFiles) !== FALSE) {
+                unset($files[$file]);
+                foreach ($formatFiles as $format => $formatFilesCurr) {
+                    if (isset($formatFilesCurr[$file]))
+                        unset($formatFilesCurr[$file]);
+                }
+            }
+        }
+
+        arsort($files);
+
+        $fileNames = array_keys($files);
+
+        if (strtolower($orderAsc) === "true") { // arsort is "desc" function
+            $fileNames = array_reverse($fileNames);
+        }
+
+        $startIndex = 0;
+        if ($lastIndex)
+            $startIndex = $lastIndex + 1;
+        if ($lastFile) { // $lastFile priority is higher than $lastIndex
+            $i = array_search($lastFile, $fileNames);
+            if ($i !== FALSE) {
+                $startIndex = $i + 1;
+            }
+        }
+
+        $isEnd = $startIndex + $maxFiles >= count($fileNames); // are there any files after current page?
+        $fileNames = array_slice($fileNames, $startIndex, $maxFiles);
+
+        $resultFiles = array();
+
+        // Create result file list for output,
+        // attach image attributes and image formats for image files.
+        foreach ($fileNames as $fileName) {
+
+            $resultFile = array(
+                'name' => $fileName,
+                'size' => filesize($fullPath . '/' . $fileName),
+                'timestamp' => filemtime($fullPath . '/' . $fileName) * 1000,
+            );
+
+            if (Utils::isImage($fileName)) {
+
+                $imageInfo = $this->getCachedImageInfo($dirPath . '/' . $fileName);
+                error_log(print_r($imageInfo, true));
+                $resultFile['width'] = $imageInfo['width'];
+                $resultFile['height'] = $imageInfo['height'];
+                $resultFile['blurHash'] = isset($imageInfo['blurHash']) ? $imageInfo['blurHash'] : NULL;
+
+                $resultFile['formats'] = array();
+
+                // Find formats of these files
+                foreach ($formatIds as $formatId) {
+                    if (array_key_exists($fileName, $formatFiles[$formatId])) {
+                        $formatFileName = $formatFiles[$formatId][$fileName];
+                        $formatFile = array(
+                            'name' => $formatFileName,
+                            'size' => filesize($fullPath . '/' . $formatFileName),
+                            'timestamp' => filemtime($fullPath . '/' . $formatFileName) * 1000,
+                        );
+                        $formatImageInfo = $this->getCachedImageInfo($dirPath . '/' . $formatFileName);
+                        $formatFile['width'] = $formatImageInfo['width'];
+                        $formatFile['height'] = $formatImageInfo['height'];
+                        $formatFile['blurHash'] = $formatImageInfo['blurHash'];
+
+                        $resultFile['formats'][$formatId] = $formatFile;
+                    }
+                }
+            }
+
+            $resultFiles[] = $resultFile;
+        }
+
+        return array(
+            'files' => $resultFiles,
+            'isEnd' => $isEnd
+        );
     }
 
     public function getFiles($dirPath)
@@ -654,16 +812,57 @@ class FMDiskFileSystem implements IFMDiskFileSystem
         return $mimeType;
     }
 
+    function getCacheFile($filePath)
+    {
+        $fullPath = $this->getAbsolutePath($filePath);
+        return $this->dirCache . '/' . str_replace('\\', '_', str_replace('/', '_', $filePath)) . "__" . filemtime($fullPath) . "__" . filesize($fullPath);
+    }
+
+    function getCachedImageInfo($filePath)
+    {
+        $fullPath = $this->getAbsolutePath($filePath);
+        $cacheFileJson = $this->getCacheFile($filePath) . '.json';
+        if (!file_exists($cacheFileJson)) {
+
+            $size = @getimagesize($fullPath);
+
+            if ($size == FALSE) {
+                error_log("Unable to get size in file " . $cacheFileJson);
+                return NULL;
+            }
+
+            $width = $size[0];
+            $height = $size[1];
+
+            // We do not calculate BlurHash here due to this is a long operation
+            // BlurHash will be calculated and JSON file will be updated on the first getImagePreview() call
+
+            $f = fopen($cacheFileJson, 'w');
+            fwrite($f, json_encode(array(
+                'width' => $width,
+                'height' => $height
+            )));
+            fclose($f);
+        }
+
+        $content = file_get_contents($cacheFileJson);
+        if ($content === FALSE) {
+            error_log("Unable to read file " . $cacheFileJson);
+            return NULL;
+        }
+
+        $json = json_decode($content, true);
+        if ($json === null) {
+            error_log("Unable to parse JSON from file " . $cacheFileJson);
+            return NULL;
+        }
+
+        return $json;
+    }
+
     function getImagePreview($filePath, $width, $height)
     {
         $fullPath = $this->getAbsolutePath($filePath);
-        $hash = md5(
-            $filePath .
-                $width .
-                $height .
-                filesize($fullPath) .
-                filemtime($fullPath)
-        );
 
         if (!file_exists($this->dirCache)) {
             if (!mkdir($this->dirCache)) {
@@ -675,7 +874,7 @@ class FMDiskFileSystem implements IFMDiskFileSystem
             }
         }
 
-        $fileCachedPath = $this->dirCache . '/' . $hash . '.png';
+        $fileCachedPath = $this->getCacheFile($filePath) . '__' . $width . '__' . $height . '.png';
         if (!file_exists($fileCachedPath)) {
             $image = null;
             switch (FMDiskFileSystem::getMimeType($fullPath)) {
@@ -718,12 +917,17 @@ class FMDiskFileSystem implements IFMDiskFileSystem
             // throw new MessageException(FMMessage.createMessage(FMMessage.FM_UNABLE_TO_CREATE_PREVIEW));
 
             $imageInfo = FMDiskFileSystem::getImageInfo($fullPath);
-
-            $ratio_thumb = $width / $height; // ratio thumb
-
             $xx = $imageInfo->width;
             $yy = $imageInfo->height;
             $ratio_original = $xx / $yy; // ratio original
+
+            if ($width == NULL) {
+                $width = floor($ratio_original * $height);
+            } else if ($height == NULL) {
+                $height = floor((1 / $ratio_original) * $width);
+            }
+
+            $ratio_thumb = $width / $height; // ratio thumb
 
             if ($ratio_original >= $ratio_thumb) {
                 $yo = $yy;
@@ -738,6 +942,15 @@ class FMDiskFileSystem implements IFMDiskFileSystem
             }
 
             $resizedImage = imagecreatetruecolor($width, $height);
+
+            $colorGray1 = imagecolorallocate($resizedImage, 240, 240, 240);
+            $colorGray2 = imagecolorallocate($resizedImage, 250, 250, 250);
+            $rectSize = 20;
+            for ($x = 0; $x <= floor($width / $rectSize); $x++)
+                for ($y = 0; $y <= floor($height / $rectSize); $y++)
+                    imagefilledrectangle($resizedImage, $x*$rectSize, $y*$rectSize, $width, $height, ($x + $y) % 2 == 0 ? $colorGray1 : $colorGray2);
+
+
             imagecopyresampled(
                 $resizedImage,
                 $image,
@@ -761,13 +974,34 @@ class FMDiskFileSystem implements IFMDiskFileSystem
             }
         }
 
-        $f = fopen($fileCachedPath, 'rb');
-        if ($f) {
-            return ['image/png', $f];
+
+        // Update BlurHash if required
+        $cachedImageInfo = $this->getCachedImageInfo($filePath);
+        if (!isset($cachedImageInfo["blurHash"])) {
+
+            $pixels = [];
+            for ($y = 0; $y < $height; $y++) {
+                $row = [];
+                for ($x = 0; $x < $width; $x++) {
+                    //error_log(imagesx($resizedImage) . "x" . imagesy($resizedImage) . "  /  "  . $x . "x" . $y . "  /  " . $width . "x" . $height . " -- " . $fileCachedPath);
+                    $index = imagecolorat($resizedImage, $x, $y);
+                    $colors = imagecolorsforindex($resizedImage, $index);
+                    $row[] = [$colors['red'], $colors['green'], $colors['blue']];
+                }
+                $pixels[] = $row;
+            }
+
+            $components_x = 4;
+            $components_y = 3;
+
+            $cachedImageInfo["blurHash"] = Blurhash::encode($pixels, $components_x, $components_y);
+            $f = fopen($this->getCacheFile($filePath) . ".json", 'w');
+            fwrite($f, json_encode($cachedImageInfo));
+            fclose($f);
         }
-        throw new MessageException(
-            FMMessage::createMessage(FMMessage::FM_FILE_DOES_NOT_EXIST)
-        );
+
+
+        return ['image/png', $fileCachedPath];
     }
 
     function getImageOriginal($filePath)

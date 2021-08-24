@@ -30,8 +30,10 @@ class FlmngrServer
             // Default action is "upload" if requester tries to upload a file
             // This is support for generic files upload in WYSIWYG editors
             if (
-                (isset($request->files['file']) ||
-                    isset($request->files['upload'])) &&
+                (
+                    isset($request->files['file']) ||
+                    isset($request->files['upload'])
+                ) &&
                 !isset($request->post['action']) &&
                 !isset($request->post['data'])
             ) {
@@ -94,6 +96,9 @@ class FlmngrServer
                     break;
                 case 'fileList':
                     $resp = FlmngrServer::reqFileList($config);
+                    break;
+                case 'fileListPaged':
+                    $resp = FlmngrServer::reqFileListPaged($config);
                     break;
                 case 'fileDelete':
                     $resp = FlmngrServer::reqFileDelete($config);
@@ -192,7 +197,9 @@ class FlmngrServer
     {
         try {
             $fileSystem = $config['filesystem'];
-            $dirs = $fileSystem->getDirs();
+            $dirs = $fileSystem->getDirs(
+                isset($config['request']->post['hideDirs']) ? $config['request']->post['hideDirs'] : []
+            );
         } catch (MessageException $e) {
             return new Response($e->getFailMessage(), null);
         }
@@ -269,6 +276,28 @@ class FlmngrServer
         }
     }
 
+    private static function reqFileListPaged($config)
+    {
+        try {
+            $fileSystem = $config['filesystem'];
+            $files = $fileSystem->getFilesPaged(
+                $config['request']->post['dir'],
+                $config['request']->post['maxFiles'],
+                isset($config['request']->post['lastFile']) ? $config['request']->post['lastFile'] : NULL,
+                isset($config['request']->post['lastIndex']) ? $config['request']->post['lastIndex'] : NULL,
+                $config['request']->post['hideFiles'],
+                $config['request']->post['filter'],
+                $config['request']->post['orderBy'],
+                $config['request']->post['orderAsc'],
+                $config['request']->post['formatIds'],
+                $config['request']->post['formatSuffixes']
+            );
+            return new Response(null, $files);
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
+    }
+
     private static function reqFileMove($config)
     {
         $files = $config['request']->post['fs'];
@@ -302,17 +331,18 @@ class FlmngrServer
 
     private static function reqFilePreview($config)
     {
-        $filePath = $config['request']->get['f'];
-        $width = $config['request']->get['width'];
-        $height = $config['request']->get['height'];
+        $filePath = isset($config['request']->get['f']) ? $config['request']->get['f'] : $config['request']->post['f'];
+        $width = isset($config['request']->get['width']) ? $config['request']->get['width'] : (isset($config['request']->post['width']) ? $config['request']->post['width'] : NULL);
+        $height = isset($config['request']->get['height']) ? $config['request']->get['height'] : (isset($config['request']->post['height']) ? $config['request']->post['height'] : NULL);
 
         try {
             $fileSystem = $config['filesystem'];
-            list($mimeType, $f) = $fileSystem->getImagePreview(
+            list($mimeType, $fullPath) = $fileSystem->getImagePreview(
                 $filePath,
                 $width,
                 $height
             );
+            $f = fopen($fullPath, 'rb');
             header('Content-Type:' . $mimeType);
             fpassthru($f);
             die();
@@ -391,6 +421,6 @@ class FlmngrServer
 
     private static function getVersion()
     {
-        return new Response(null, ['version' => '3', 'language' => 'php']);
+        return new Response(null, ['version' => '4', 'language' => 'php']);
     }
 }
