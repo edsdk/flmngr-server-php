@@ -227,7 +227,6 @@ class FMDiskFileSystem implements IFMDiskFileSystem
         $maxFiles,
         $lastFile,
         $lastIndex,
-        $filter,
         $whiteList,
         $blackList,
         $filter,
@@ -344,7 +343,7 @@ class FMDiskFileSystem implements IFMDiskFileSystem
 
             $isMatch = fnmatch($filter, $file) === TRUE;
 
-            if ($isMatch) {
+            if (!$isMatch) {
                 unset($files[$file]);
                 foreach ($formatFiles as $format => $formatFilesCurr) {
                     if (isset($formatFilesCurr[$file]))
