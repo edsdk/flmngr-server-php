@@ -105,7 +105,8 @@ class FMS3FileSystem implements IFMDiskFileSystem
         $maxFiles,
         $lastFile,
         $lastIndex,
-        $hideFiles,
+        $whiteList,
+        $blackList,
         $filter,
         $orderBy,
         $orderAsc,
@@ -892,6 +893,12 @@ class FMS3FileSystem implements IFMDiskFileSystem
         throw new MessageException(
             FMMessage::createMessage(FMMessage::FM_FILE_DOES_NOT_EXIST)
         );
+    }
+
+    function passThrough($fullPath, $mimeType)
+    {
+        header('Content-Type:' . $mimeType);
+        fpassthru($fullPath);
     }
 
     function getDirZipArchive($dirPath, $out)

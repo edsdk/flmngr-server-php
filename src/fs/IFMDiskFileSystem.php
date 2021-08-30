@@ -29,5 +29,7 @@ interface IFMDiskFileSystem {
 
     function getAbsolutePath($path);
 
+    function passThrough($fullPath, $mimeType);
+
 
 }

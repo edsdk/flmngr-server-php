@@ -227,7 +227,9 @@ class FMDiskFileSystem implements IFMDiskFileSystem
         $maxFiles,
         $lastFile,
         $lastIndex,
-        $hideFiles,
+        $filter,
+        $whiteList,
+        $blackList,
         $filter,
         $orderBy,
         $orderAsc,
@@ -278,32 +280,57 @@ class FMDiskFileSystem implements IFMDiskFileSystem
             if ($ext != NULL)
                 $name = $name . '.' . $ext;
 
-            if ($filter == NULL || $filter == '' || strpos($name, $filter) !== FALSE) {
-                $fieldName = $file;
-                $fieldDate = filemtime($fullPath . '/' . $file);
-                $fieldSize = filesize($fullPath . '/' . $file);
-                if ($format == NULL) {
-                    switch ($orderBy) {
-                        case 'date':
-                            $files[$file] = [$fieldDate, $fieldName, $fieldSize];
-                            break;
-                        case 'size':
-                            $files[$file] = [$fieldSize, $fieldName, $fieldDate];
-                            break;
-                        case 'name':
-                        default:
-                            $files[$file] = [$fieldName, $fieldDate, $fieldSize];
-                            break;
+            $fieldName = $file;
+            $fieldDate = filemtime($fullPath . '/' . $file);
+            $fieldSize = filesize($fullPath . '/' . $file);
+            if ($format == NULL) {
+                switch ($orderBy) {
+                    case 'date':
+                        $files[$file] = [$fieldDate, $fieldName, $fieldSize];
+                        break;
+                    case 'size':
+                        $files[$file] = [$fieldSize, $fieldName, $fieldDate];
+                        break;
+                    case 'name':
+                    default:
+                        $files[$file] = [$fieldName, $fieldDate, $fieldSize];
+                        break;
+                }
+            } else {
+                $formatFiles[$format][$name] = $file;
+            }
+        }
+
+        // Remove files outside of white list, and their formats too
+        if (count($whiteList) > 0) { // only if whitelist is set
+            foreach ($files as $file => $v) {
+
+                $isMatch = false;
+                foreach ($whiteList as $mask) {
+                    if (fnmatch($mask, $file) === TRUE)
+                        $isMatch = true;
+                }
+
+                if (!$isMatch) {
+                    unset($files[$file]);
+                    foreach ($formatFiles as $format => $formatFilesCurr) {
+                        if (isset($formatFilesCurr[$file]))
+                            unset($formatFilesCurr[$file]);
                     }
-                } else {
-                    $formatFiles[$format][$name] = $file;
                 }
             }
         }
 
-        // Remove files which need to be hidden, and their formats too
+        // Remove files outside of black list, and their formats too
         foreach ($files as $file => $v) {
-            if (array_search($file, $hideFiles) !== FALSE) {
+
+            $isMatch = false;
+            foreach ($blackList as $mask) {
+                if (fnmatch($mask, $file) === TRUE)
+                    $isMatch = true;
+            }
+
+            if ($isMatch) {
                 unset($files[$file]);
                 foreach ($formatFiles as $format => $formatFilesCurr) {
                     if (isset($formatFilesCurr[$file]))
@@ -311,6 +338,21 @@ class FMDiskFileSystem implements IFMDiskFileSystem
                 }
             }
         }
+
+        // Remove files not matching the filter, and their formats too
+        foreach ($files as $file => $v) {
+
+            $isMatch = fnmatch($filter, $file) === TRUE;
+
+            if ($isMatch) {
+                unset($files[$file]);
+                foreach ($formatFiles as $format => $formatFilesCurr) {
+                    if (isset($formatFilesCurr[$file]))
+                        unset($formatFilesCurr[$file]);
+                }
+            }
+        }
+
 
 
         uasort($files, function ($arr1, $arr2) {
@@ -1042,6 +1084,13 @@ class FMDiskFileSystem implements IFMDiskFileSystem
         throw new MessageException(
             FMMessage::createMessage(FMMessage::FM_FILE_DOES_NOT_EXIST)
         );
+    }
+
+    function passThrough($fullPath, $mimeType)
+    {
+        $f = fopen($fullPath, 'rb');
+        header('Content-Type:' . $mimeType);
+        fpassthru($f);
     }
 
     function getDirZipArchive($dirPath, $out)

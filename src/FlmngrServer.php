@@ -285,13 +285,15 @@ class FlmngrServer
                 $config['request']->post['maxFiles'],
                 isset($config['request']->post['lastFile']) ? $config['request']->post['lastFile'] : NULL,
                 isset($config['request']->post['lastIndex']) ? $config['request']->post['lastIndex'] : NULL,
-                $config['request']->post['hideFiles'],
+                $config['request']->post['whiteList'],
+                $config['request']->post['blackList'],
                 $config['request']->post['filter'],
                 $config['request']->post['orderBy'],
                 $config['request']->post['orderAsc'],
                 $config['request']->post['formatIds'],
                 $config['request']->post['formatSuffixes']
             );
+
             return new Response(null, $files);
         } catch (MessageException $e) {
             return new Response($e->getFailMessage(), null);
@@ -342,10 +344,7 @@ class FlmngrServer
                 $width,
                 $height
             );
-            $f = fopen($fullPath, 'rb');
-            header('Content-Type:' . $mimeType);
-            fpassthru($f);
-            die();
+            $fileSystem->passThrough($fullPath, $mimeType);
         } catch (MessageException $e) {
             return new Response($e->getFailMessage(), null);
         }
