@@ -125,4 +125,27 @@ class Utils
         }
         return false;
     }
+
+    public static function addTrailingSlash($value)
+    {
+        if (
+            $value != null &&
+            (strlen($value) == 0 || !substr($value, strlen($value) - 1) == '/')
+        ) {
+            $value .= '/';
+        }
+        return $value;
+    }
+
+    public static function removeTrailingSlash($value)
+    {
+        if (
+            $value != null &&
+            (strlen($value) > 0 && substr($value, strlen($value) - 1) == '/')
+        ) {
+            $value = substr(0, strlen($value) - 1);
+        }
+        return $value;
+    }
+
 }

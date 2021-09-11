@@ -10,6 +10,7 @@
 namespace EdSDK\FlmngrServer\lib\action;
 
 use EdSDK\FlmngrServer\lib\file\FileUploaded;
+use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\file\UtilsPHP;
 use EdSDK\FlmngrServer\lib\action\resp\Message;
 use EdSDK\FlmngrServer\lib\action\resp\RespOk;
@@ -165,7 +166,7 @@ class ActionUploadCommit extends AActionUploadId
             $fileToCommit = $filesToCommit[$i];
             $fileCommited = $fileToCommit->commit($req->dir, $req->autoRename);
             $filesCommited[] = $fileCommited;
-                }
+        }
 
         // 2. Remove uploadAndCommit directory
 
@@ -189,6 +190,23 @@ class ActionUploadCommit extends AActionUploadId
 
         $resp = new RespUploadCommit();
         $resp->files = $files;
+
+        $files2 = [];
+        for ($i = 0; $i < count($filesCommited); $i++) {
+
+            $dirRoot = Utils::removeTrailingSlash($this->m_config->getBaseDir());
+            $index = strrpos($dirRoot, '/');
+            if ($index !== FALSE) {
+                $dirRoot = substr($dirRoot, $index + 1);
+            }
+
+            $files2[] = $this->m_config->getFS()->getFileStructure(
+                '/' . $dirRoot . $filesCommited[$i]->getDir(),
+                $filesCommited[$i]->getName()
+            );
+        }
+        $resp->files2 = $files2;
+
         return $resp;
     }
 }

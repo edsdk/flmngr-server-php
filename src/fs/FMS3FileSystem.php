@@ -9,7 +9,6 @@
 
 namespace EdSDK\FlmngrServer\fs;
 
-use EdSDK\FlmngrServer\lib\file\FileCommited;
 use EdSDK\FlmngrServer\lib\action\resp\Message;
 use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\MessageException;
@@ -23,7 +22,7 @@ use Aws\S3\S3Client;
 
 use Aws\Exception\AwsException;
 
-class FMS3FileSystem implements IFMDiskFileSystem
+class FMS3FileSystem extends AFileSystem
 {
     private $dirFiles;
 

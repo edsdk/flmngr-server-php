@@ -10,23 +10,22 @@
 namespace EdSDK\FlmngrServer\servlet;
 
 use EdSDK\FlmngrServer\lib\config\IConfig;
+use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\file\UtilsPHP;
-use EdSDK\FlmngrServer\fs\IFMDiskFileSystem;
+use EdSDK\FlmngrServer\fs\AFileSystem;
 use Exception;
 
 class ServletConfig implements IConfig
 {
     protected $m_conf;
     protected $m_testConf = [];
-    public $request;
 
     public function __construct($m_conf)
     {
         $this->m_conf = $m_conf;
-        $this->request = $m_conf['request'];
     }
 
-    public function getFS(): IFMDiskFileSystem
+    public function getFS()
     {
         return $this->m_conf['filesystem'];
     }
@@ -39,31 +38,21 @@ class ServletConfig implements IConfig
     protected function getParameter($name, $defaultValue, $doAddTrailingSlash)
     {
         if (array_key_exists($name, $this->m_testConf)) {
-            return $this->addTrailingSlash(
-                $this->m_testConf[$name],
-                $doAddTrailingSlash
-            );
+            if ($doAddTrailingSlash) {
+                return Utils::addTrailingSlash($this->m_testConf[$name]);
+            } else {
+                return $this->m_testConf[$name];
+            }
         } else {
             if (array_key_exists($name, $this->m_conf)) {
-                return $this->addTrailingSlash(
-                    $this->m_conf[$name],
-                    $doAddTrailingSlash
-                );
+                if ($doAddTrailingSlash) {
+                    return Utils::addTrailingSlash($this->m_conf[$name]);
+                } else {
+                    return $this->m_conf[$name];
+                }
             }
             return $defaultValue;
         }
-    }
-
-    protected function addTrailingSlash($value, $doAddTrailingSlash)
-    {
-        if (
-            $value != null &&
-            $doAddTrailingSlash &&
-            (strlen($value) == 0 || !substr($value, strlen($value) - 1) == '/')
-        ) {
-            $value .= '/';
-        }
-        return $value;
     }
 
     protected function getParameterStr($name, $defaultValue)

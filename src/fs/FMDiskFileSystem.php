@@ -20,7 +20,7 @@ use EdSDK\FlmngrServer\model\FMMessage;
 use EdSDK\FlmngrServer\model\ImageInfo;
 use Exception;
 
-class FMDiskFileSystem implements IFMDiskFileSystem
+class FMDiskFileSystem extends AFileSystem
 {
     private $dirFiles;
 
@@ -352,8 +352,6 @@ class FMDiskFileSystem implements IFMDiskFileSystem
             }
         }
 
-
-
         uasort($files, function ($arr1, $arr2) {
 
             for ($i=0; $i<count($arr1); $i++) {
@@ -397,37 +395,15 @@ class FMDiskFileSystem implements IFMDiskFileSystem
         // attach image attributes and image formats for image files.
         foreach ($fileNames as $fileName) {
 
-            $resultFile = array(
-                'name' => $fileName,
-                'size' => filesize($fullPath . '/' . $fileName),
-                'timestamp' => filemtime($fullPath . '/' . $fileName) * 1000,
-            );
+            $resultFile = $this->getFileStructure($dirPath, $fileName);
 
-            if (Utils::isImage($fileName)) {
+            // Find formats of these files
+            foreach ($formatIds as $formatId) {
+                if (array_key_exists($fileName, $formatFiles[$formatId])) {
+                    $formatFileName = $formatFiles[$formatId][$fileName];
 
-                $imageInfo = $this->getCachedImageInfo($dirPath . '/' . $fileName);
-                $resultFile['width'] = $imageInfo['width'];
-                $resultFile['height'] = $imageInfo['height'];
-                $resultFile['blurHash'] = isset($imageInfo['blurHash']) ? $imageInfo['blurHash'] : NULL;
-
-                $resultFile['formats'] = array();
-
-                // Find formats of these files
-                foreach ($formatIds as $formatId) {
-                    if (array_key_exists($fileName, $formatFiles[$formatId])) {
-                        $formatFileName = $formatFiles[$formatId][$fileName];
-                        $formatFile = array(
-                            'name' => $formatFileName,
-                            'size' => filesize($fullPath . '/' . $formatFileName),
-                            'timestamp' => filemtime($fullPath . '/' . $formatFileName) * 1000,
-                        );
-                        $formatImageInfo = $this->getCachedImageInfo($dirPath . '/' . $formatFileName);
-                        $formatFile['width'] = $formatImageInfo['width'];
-                        $formatFile['height'] = $formatImageInfo['height'];
-                        $formatFile['blurHash'] = $formatImageInfo['blurHash'];
-
-                        $resultFile['formats'][$formatId] = $formatFile;
-                    }
+                    $formatFile = $this->getFileStructure($dirPath, $formatFileName);
+                    $resultFile['formats'][$formatId] = $formatFile;
                 }
             }
 
@@ -438,6 +414,29 @@ class FMDiskFileSystem implements IFMDiskFileSystem
             'files' => $resultFiles,
             'isEnd' => $isEnd
         );
+    }
+
+    public function getFileStructure($dirPath, $fileName) {
+
+        $fullPath = $this->getAbsolutePath($dirPath);
+
+        $resultFile = array(
+            'name' => $fileName,
+            'size' => filesize($fullPath . '/' . $fileName),
+            'timestamp' => filemtime($fullPath . '/' . $fileName) * 1000,
+        );
+
+        if (Utils::isImage($fileName)) {
+
+            $imageInfo = $this->getCachedImageInfo($dirPath . '/' . $fileName);
+            $resultFile['width'] = $imageInfo['width'];
+            $resultFile['height'] = $imageInfo['height'];
+            $resultFile['blurHash'] = isset($imageInfo['blurHash']) ? $imageInfo['blurHash'] : NULL;
+
+            $resultFile['formats'] = array();
+        }
+
+        return $resultFile;
     }
 
     public function getFiles($dirPath)

@@ -345,6 +345,7 @@ class FlmngrServer
                 $height
             );
             $fileSystem->passThrough($fullPath, $mimeType);
+            die(); // to prevent setting header after passing a file
         } catch (MessageException $e) {
             return new Response($e->getFailMessage(), null);
         }

@@ -2,7 +2,7 @@
 namespace EdSDK\FlmngrServer;
 use EdSDK\FlmngrServer\lib\CommonRequest;
 use EdSDK\FlmngrServer\lib\IFmRequest;
-use EdSDK\FlmngrServer\fs\IFMDiskFileSystem;
+use EdSDK\FlmngrServer\fs\AFileSystem;
 class FlmngrFrontController
 {
     public $request;
