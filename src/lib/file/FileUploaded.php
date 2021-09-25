@@ -144,14 +144,14 @@ class FileUploaded extends AFile
         $this->setName($dUrl->fileName);
     }
 
-    public function commit($dir, $autoRename)
+    // $mode is the same is in ActionUploadCommit.run(): "ASK" | "AUTORENAME" | "OVERWRITE"
+    public function commit($dir, $mode)
     {
         $file = $this->getCommitedFile($dir);
-        if ($autoRename) {
+        if ($mode === "AUTORENAME") {
             $file->setFreeFileName();
         }
         $this->copyCommited($file);
-        // $this->copyTo($file);
         return $file;
     }
 

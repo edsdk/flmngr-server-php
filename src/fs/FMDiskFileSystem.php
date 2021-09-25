@@ -86,7 +86,12 @@ class FMDiskFileSystem extends AFileSystem
 
         for ($i = 0; $i < count($files); $i++) {
             if ($files[$i] !== '.' && $files[$i] !== '..') {
-                if (is_dir($fDir . '/' . $files[$i]) && array_search($files[$i], $hideDirs) === FALSE) {
+
+                $isHide = FALSE;
+                for ($j = 0; $j < count($hideDirs) && !$isHide; $j ++)
+                    $isHide = $isHide || fnmatch($hideDirs[$j], $files[$j]);
+
+                if (is_dir($fDir . '/' . $files[$i]) && !$isHide) {
                     $this->getDirs__fill(
                         $dirs,
                         $fDir . '/' . $files[$i],

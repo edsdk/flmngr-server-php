@@ -318,7 +318,7 @@ class FlmngrServer
 
     private static function reqFileOriginal($config)
     {
-        $filePath = $config['request']->get['f'];
+        $filePath = isset($config['request']->get['f']) ? $config['request']->get['f'] : $config['request']->post['f'];
 
         try {
             $fileSystem = $config['filesystem'];

@@ -16,6 +16,7 @@ use EdSDK\FlmngrServer\lib\action\resp\Message;
 use EdSDK\FlmngrServer\lib\action\resp\RespOk;
 use EdSDK\FlmngrServer\lib\action\resp\RespUploadCommit;
 use EdSDK\FlmngrServer\lib\MessageException;
+use EdSDK\FlmngrServer\model\FMMessage;
 use Exception;
 
 class ActionUploadCommit extends AActionUploadId
@@ -52,6 +53,18 @@ class ActionUploadCommit extends AActionUploadId
         }
     }
 
+
+    // Can be run in three modes:
+    // mode = "ASK" (legacy: autoRename=false)
+    //      Will fail if any filename conflicts.
+    // mode = "AUTORENAME" (legacy: autoRename=true)
+    //      Will automatically find a new filename for uploaded files in case of conflicts
+    // mode = "OVERWRITE"
+    //      Will silently overwrite files in case of any conflicts.
+    //
+    // imageFormats = [{suffix: "_preview", maxWidth: 1000, maxHeight: 800}, ...]
+    //      In all cases if this parameter is set, file formats will to be recalculated automatically
+    //      (only for existing formats)
     public function run($req)
     {
         $this->validateUploadId($req);
@@ -59,7 +72,20 @@ class ActionUploadCommit extends AActionUploadId
         $this->validateSizes($req);
 
         $req->doCommit = $this->validateBoolean($req->doCommit, true);
-        $req->autoRename = $this->validateBoolean($req->autoRename, false);
+
+        // Legacy way to set mode
+        if (isset($req->autoRename))
+            $req->mode = $this->validateBoolean($req->autoRename, false) ? "AUTORENAME" : "ASK";
+
+        if (
+            !isset($req->mode) ||
+            array_search($req->mode, ["ASK", "AUTORENAME", "OVERWRITE"]) === FALSE
+        )  {
+            throw new MessageException(
+                Message::createMessage(Message::INTERNAL_ERROR, $req->dir)
+            );
+        }
+
         $req->dir = $this->validateString($req->dir, '');
 
         if (strpos($req->dir, '/') !== 0) {
@@ -134,7 +160,7 @@ class ActionUploadCommit extends AActionUploadId
         for ($i = 0; $i < count($filesToCommit); $i++) {
             $file = $filesToCommit[$i];
             $file->checkForErrors(true);
-            if (!$req->autoRename) {
+            if ($req->mode === "ASK") {
                 $file->checkForConflicts($req->dir);
             }
         }
@@ -164,8 +190,50 @@ class ActionUploadCommit extends AActionUploadId
         $filesCommited = [];
         for ($i = 0; $i < count($filesToCommit); $i++) {
             $fileToCommit = $filesToCommit[$i];
-            $fileCommited = $fileToCommit->commit($req->dir, $req->autoRename);
+            $fileCommited = $fileToCommit->commit($req->dir, $req->mode);
             $filesCommited[] = $fileCommited;
+
+            if ($req->imageFormats != NULL) {
+
+                $path = $fileCommited->getPath();
+                $defaultFormatFileName = $path;
+                $index = strrpos($path, '/');
+                if ($index !== FALSE) {
+                    $defaultFormatFileName = substr($path, $index + 1);
+                }
+
+                // Remove root dir
+                $path = substr($path, 1);
+                $index = strpos($path, '/');
+                if ($index !== FALSE)
+                    $path = substr($path, $index + 1);
+                $path = '/' . $path;
+
+                $defaultFormatFileName = Utils::getNameWithoutExt($defaultFormatFileName);
+
+                foreach ($req->imageFormats as $imageFormat) {
+
+                    $formatFileName = $defaultFormatFileName;
+
+                    // "default" format has NULL suffix (original filename)
+                    $formatFileName .= ($imageFormat->suffix != NULL ? $imageFormat->suffix : "");
+
+                    try {
+                        $this->m_config->getFS()->resizeFile(
+                            $path,
+                            $formatFileName,
+                            $imageFormat->maxWidth,
+                            $imageFormat->maxHeight,
+                            "IF_EXISTS"
+                        );
+                    } catch (MessageException $e) {
+                        if ($e->getFailMessage()["code"] !== FMMessage::FM_NOT_ERROR_NOT_NEEDED_TO_UPDATE) {
+                            error_log("Error on resizing file for overwritten one:\n");
+                            error_log(print_r($e->getFailMessage(), TRUE));
+                        }
+                    }
+                }
+            }
         }
 
         // 2. Remove uploadAndCommit directory

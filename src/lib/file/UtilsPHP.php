@@ -44,6 +44,7 @@ class UtilsPHP
 
     public static function copyFile($src, $dst)
     {
+        // File will be overwritten if exists - it is OK
         if (!copy($src, $dst)) {
             throw new Exception('Unable to copy file ' . $src . ' to ' . $dst);
         }
