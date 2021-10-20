@@ -434,8 +434,8 @@ class FMDiskFileSystem extends AFileSystem
         if (Utils::isImage($fileName)) {
 
             $imageInfo = $this->getCachedImageInfo($dirPath . '/' . $fileName);
-            $resultFile['width'] = $imageInfo['width'];
-            $resultFile['height'] = $imageInfo['height'];
+            $resultFile['width'] = isset($imageInfo['width']) ? $imageInfo['width'] : NULL;
+            $resultFile['height'] = isset($imageInfo['height']) ? $imageInfo['height'] : NULL;
             $resultFile['blurHash'] = isset($imageInfo['blurHash']) ? $imageInfo['blurHash'] : NULL;
 
             $resultFile['formats'] = array();
