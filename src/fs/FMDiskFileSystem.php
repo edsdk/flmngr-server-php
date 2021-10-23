@@ -227,6 +227,13 @@ class FMDiskFileSystem extends AFileSystem
         $this->renameFileOrDir($dirPath, $newName);
     }
 
+    private function profile($text, $start) {
+        $now = microtime(true);
+        $time = $now - $start;
+        error_log($text. " done in ".number_format($time/1000, 5, ",", "")." sec\n");
+        return $now;
+    }
+
     public function getFilesPaged(
         $dirPath,
         $maxFiles,
@@ -241,6 +248,9 @@ class FMDiskFileSystem extends AFileSystem
         $formatSuffixes
     )
     {
+        $now = microtime(true);
+        $start = $now;
+
         $fullPath = $this->getAbsolutePath($dirPath);
 
         if (!is_dir($fullPath)) {
@@ -261,6 +271,8 @@ class FMDiskFileSystem extends AFileSystem
                 FMMessage::createMessage(FMMessage::FM_DIR_CANNOT_BE_READ)
             );
         }
+
+        $now = $this->profile("Scan dir", $now);
 
         foreach ($fFiles as $file) {
 
@@ -304,6 +316,7 @@ class FMDiskFileSystem extends AFileSystem
                 $formatFiles[$format][$name] = $file;
             }
         }
+        $now = $this->profile("Fill image formats", $now);
 
         // Remove files outside of white list, and their formats too
         if (count($whiteList) > 0) { // only if whitelist is set
@@ -325,6 +338,8 @@ class FMDiskFileSystem extends AFileSystem
             }
         }
 
+        $now = $this->profile("White list", $now);
+
         // Remove files outside of black list, and their formats too
         foreach ($files as $file => $v) {
 
@@ -343,11 +358,12 @@ class FMDiskFileSystem extends AFileSystem
             }
         }
 
+        $now = $this->profile("Black list", $now);
+
         // Remove files not matching the filter, and their formats too
         foreach ($files as $file => $v) {
 
             $isMatch = fnmatch($filter, $file) === TRUE;
-
             if (!$isMatch) {
                 unset($files[$file]);
                 foreach ($formatFiles as $format => $formatFilesCurr) {
@@ -356,6 +372,8 @@ class FMDiskFileSystem extends AFileSystem
                 }
             }
         }
+
+        $now = $this->profile("Filter", $now);
 
         uasort($files, function ($arr1, $arr2) {
 
@@ -381,6 +399,8 @@ class FMDiskFileSystem extends AFileSystem
             $fileNames = array_reverse($fileNames);
         }
 
+        $now = $this->profile("Sorting", $now);
+
         $startIndex = 0;
         if ($lastIndex)
             $startIndex = $lastIndex + 1;
@@ -393,6 +413,8 @@ class FMDiskFileSystem extends AFileSystem
 
         $isEnd = $startIndex + $maxFiles >= count($fileNames); // are there any files after current page?
         $fileNames = array_slice($fileNames, $startIndex, $maxFiles);
+
+        $now = $this->profile("Page slice", $now);
 
         $resultFiles = array();
 
@@ -414,6 +436,9 @@ class FMDiskFileSystem extends AFileSystem
 
             $resultFiles[] = $resultFile;
         }
+
+        $now = $this->profile("Create output list", $now);
+        $this->profile("Total", $start);
 
         return array(
             'files' => $resultFiles,
