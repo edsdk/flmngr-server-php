@@ -42,6 +42,8 @@ class Message
     const DOWNLOAD_FAIL_IO = 24; // args: IO_Exceptions_text
     const DOWNLOAD_FAIL_HOST_DENIED = 25; // args: host name
     const DOWNLOAD_FAIL_INCORRECT_URL = 26; // args: url
+    // 27 and 28 reserved for demo server
+    const FILE_SIZE_EXCEEDS_SYSTEM_LIMIT = 29; // args: size, maxSize, like #6, but a limit from php.ini file
 
     public $code;
     public $args;

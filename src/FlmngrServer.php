@@ -12,16 +12,19 @@ namespace EdSDK\FlmngrServer;
 use EdSDK\FlmngrServer\resp\Response;
 use Exception;
 
-use EdSDK\FlmngrServer\FileUploaderServer;
 use EdSDK\FlmngrServer\lib\JsonCodec;
 use EdSDK\FlmngrServer\lib\action\resp\Message;
 use EdSDK\FlmngrServer\lib\MessageException;
-use EdSDK\FlmngrServer\FlmngrFrontController;
 
 class FlmngrServer
 {
+
     static function flmngrRequest($config)
     {
+
+        if (FlmngrServer::checkUploadLimit())
+            return; // file size exceed the limit from php.ini
+
         $frontController = new FlmngrFrontController($config);
         $request = $frontController->request;
         $config['filesystem'] = $frontController->filesystem;
@@ -137,7 +140,6 @@ class FlmngrServer
             $resp = new Response($e->getFailMessage(), null);
         }
 
-        //print_r($resp);
         $strResp = JsonCodec::s_toJson($resp);
 
         try {
@@ -147,6 +149,63 @@ class FlmngrServer
         } catch (Exception $e) {
             error_log($e);
         }
+    }
+
+    private static function iniGetBytes($val)
+    {
+        $val = trim(ini_get($val));
+        if ($val != '') {
+            $last = strtolower(substr($val, strlen($val) - 1));
+        } else {
+            $last = '';
+        }
+        if ($last !== '') {
+            $val = substr($val, 0, strlen($val) - 1);
+        }
+
+        switch ($last) {
+            // The 'G' modifier is available since PHP 5.1.0
+            case 'g':
+                $val *= 1024;
+            // fall through
+            case 'm':
+                $val *= 1024;
+            // fall through
+            case 'k':
+                $val *= 1024;
+            // fall through
+        }
+
+        return $val;
+    }
+
+    private static function checkUploadLimit() {
+        if (isset($_SERVER["CONTENT_LENGTH"])) {
+            if ($_SERVER["CONTENT_LENGTH"] > (FlmngrServer::iniGetBytes('post_max_size'))) {
+
+                $resp = new Response(
+                    Message::createMessage(
+                        Message::FILE_SIZE_EXCEEDS_SYSTEM_LIMIT,
+                        '' . $_SERVER["CONTENT_LENGTH"],
+                        '' . FlmngrServer::iniGetBytes('post_max_size')
+                    ),
+                    null
+                );
+
+                $strResp = JsonCodec::s_toJson($resp);
+
+                try {
+                    http_response_code(200);
+                    header('Content-Type: application/json; charset=UTF-8');
+                    print $strResp;
+                } catch (Exception $e) {
+                    error_log($e);
+                }
+
+                return true;
+            }
+        }
+        return false;
     }
 
     private static function reqDirCopy($config)
