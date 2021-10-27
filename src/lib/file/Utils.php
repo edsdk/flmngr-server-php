@@ -116,7 +116,7 @@ class Utils
 
     public static function isImage($name)
     {
-        $exts = ['gif', 'jpg', 'jpeg', 'png'];
+        $exts = ['gif', 'jpg', 'jpeg', 'png', 'svg', 'webp', 'bmp'];
         $ext = Utils::getExt($name);
         for ($i = 0; $i < count($exts); $i++) {
             if ($exts[$i] === strtolower($ext)) {

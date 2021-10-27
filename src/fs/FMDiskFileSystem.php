@@ -1063,7 +1063,6 @@ class FMDiskFileSystem extends AFileSystem
             }
         }
 
-
         // Update BlurHash if required
         $cachedImageInfo = $this->getCachedImageInfo($filePath);
         if (!isset($cachedImageInfo["blurHash"])) {
@@ -1087,7 +1086,6 @@ class FMDiskFileSystem extends AFileSystem
             fwrite($f, json_encode($cachedImageInfo));
             fclose($f);
         }
-
 
         return ['image/png', $fileCachedPath];
     }
