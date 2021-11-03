@@ -18,25 +18,29 @@ use EdSDK\FlmngrServer\lib\MessageException;
 
 class FlmngrServer
 {
-
     static function flmngrRequest($config)
     {
-
-        if (FlmngrServer::checkUploadLimit())
-            return; // file size exceed the limit from php.ini
+        if (FlmngrServer::checkUploadLimit()) {
+            return;
+        } // file size exceed the limit from php.ini
 
         $frontController = new FlmngrFrontController($config);
         $request = $frontController->request;
         $config['filesystem'] = $frontController->filesystem;
+
+        if (isset($request->post['embedPreviews'])) {
+            $config['filesystem']->setEmbedPreviews(
+                $request->post['embedPreviews']
+            );
+        }
+
         $action = null;
         if ($request->requestMethod === 'POST') {
             // Default action is "upload" if requester tries to upload a file
             // This is support for generic files upload in WYSIWYG editors
             if (
-                (
-                    isset($request->files['file']) ||
-                    isset($request->files['upload'])
-                ) &&
+                (isset($request->files['file']) ||
+                    isset($request->files['upload'])) &&
                 !isset($request->post['action']) &&
                 !isset($request->post['data'])
             ) {
@@ -179,14 +183,17 @@ class FlmngrServer
         return $val;
     }
 
-    private static function checkUploadLimit() {
-        if (isset($_SERVER["CONTENT_LENGTH"])) {
-            if ($_SERVER["CONTENT_LENGTH"] > (FlmngrServer::iniGetBytes('post_max_size'))) {
-
+    private static function checkUploadLimit()
+    {
+        if (isset($_SERVER['CONTENT_LENGTH'])) {
+            if (
+                $_SERVER['CONTENT_LENGTH'] >
+                FlmngrServer::iniGetBytes('post_max_size')
+            ) {
                 $resp = new Response(
                     Message::createMessage(
                         Message::FILE_SIZE_EXCEEDS_SYSTEM_LIMIT,
-                        '' . $_SERVER["CONTENT_LENGTH"],
+                        '' . $_SERVER['CONTENT_LENGTH'],
                         '' . FlmngrServer::iniGetBytes('post_max_size')
                     ),
                     null
@@ -257,7 +264,9 @@ class FlmngrServer
         try {
             $fileSystem = $config['filesystem'];
             $dirs = $fileSystem->getDirs(
-                isset($config['request']->post['hideDirs']) ? $config['request']->post['hideDirs'] : []
+                isset($config['request']->post['hideDirs'])
+                    ? $config['request']->post['hideDirs']
+                    : []
             );
         } catch (MessageException $e) {
             return new Response($e->getFailMessage(), null);
@@ -342,8 +351,12 @@ class FlmngrServer
             $files = $fileSystem->getFilesPaged(
                 $config['request']->post['dir'],
                 $config['request']->post['maxFiles'],
-                isset($config['request']->post['lastFile']) ? $config['request']->post['lastFile'] : NULL,
-                isset($config['request']->post['lastIndex']) ? $config['request']->post['lastIndex'] : NULL,
+                isset($config['request']->post['lastFile'])
+                    ? $config['request']->post['lastFile']
+                    : null,
+                isset($config['request']->post['lastIndex'])
+                    ? $config['request']->post['lastIndex']
+                    : null,
                 $config['request']->post['whiteList'],
                 $config['request']->post['blackList'],
                 $config['request']->post['filter'],
@@ -377,7 +390,9 @@ class FlmngrServer
 
     private static function reqFileOriginal($config)
     {
-        $filePath = isset($config['request']->get['f']) ? $config['request']->get['f'] : $config['request']->post['f'];
+        $filePath = isset($config['request']->get['f'])
+            ? $config['request']->get['f']
+            : $config['request']->post['f'];
 
         try {
             $fileSystem = $config['filesystem'];
@@ -392,9 +407,19 @@ class FlmngrServer
 
     private static function reqFilePreview($config)
     {
-        $filePath = isset($config['request']->get['f']) ? $config['request']->get['f'] : $config['request']->post['f'];
-        $width = isset($config['request']->get['width']) ? $config['request']->get['width'] : (isset($config['request']->post['width']) ? $config['request']->post['width'] : NULL);
-        $height = isset($config['request']->get['height']) ? $config['request']->get['height'] : (isset($config['request']->post['height']) ? $config['request']->post['height'] : NULL);
+        $filePath = isset($config['request']->get['f'])
+            ? $config['request']->get['f']
+            : $config['request']->post['f'];
+        $width = isset($config['request']->get['width'])
+            ? $config['request']->get['width']
+            : (isset($config['request']->post['width'])
+                ? $config['request']->post['width']
+                : null);
+        $height = isset($config['request']->get['height'])
+            ? $config['request']->get['height']
+            : (isset($config['request']->post['height'])
+                ? $config['request']->post['height']
+                : null);
 
         try {
             $fileSystem = $config['filesystem'];

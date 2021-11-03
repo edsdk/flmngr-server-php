@@ -11,9 +11,20 @@ class FlmngrFrontController
 
     public function __construct($config)
     {
-        $request = new CommonRequest();
+        if (isset($config['adapter'])) {
+            $adapter_class_name =
+                'EdSDK\FlmngrServer\lib\\' . $config['adapter'];
+            if (class_exists($adapter_class_name)) {
+                $request = new $adapter_class_name($config);
+            } else {
+                die('Request adapter not found');
+            }
+        } else {
+            $request = new CommonRequest();
+        }
         $request->parseRequest();
         $this->request = $request;
+
         //creating filesystem instance based on config
         $class_name = 'EdSDK\FlmngrServer\fs\\' . $config['storage']['type'];
         if (class_exists($class_name)) {

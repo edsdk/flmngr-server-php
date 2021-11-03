@@ -32,6 +32,8 @@ To handle some URL you want in your web application, create a file which will be
     'dirFiles' => __DIR__ . '/files',
     'dirTmp' => __DIR__ . '/tmp',
     'dirCache' => __DIR__ . '/cache',
+    //leave next line commented for custom CMS integration
+    // 'adapter' => 'DrupalRequest', 
     'storage' => [
         'type' => 'FMDiskFileSystem',
         'config' => [ ],
