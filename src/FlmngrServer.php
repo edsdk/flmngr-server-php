@@ -48,13 +48,14 @@ class FlmngrServer {
         return;
       }
     }
-    else {
-      if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+      if (isset($_GET['action'])) {
         $action = $_GET['action'];
       }
-      else {
-        return;
-      }
+    }
+    else {
+      return;
     }
 
     try {
