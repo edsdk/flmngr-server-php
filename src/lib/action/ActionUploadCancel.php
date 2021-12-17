@@ -9,7 +9,7 @@
 
 namespace EdSDK\FlmngrServer\lib\action;
 
-use EdSDK\FlmngrServer\lib\file\UtilsPHP;
+use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\action\resp\Message;
 use EdSDK\FlmngrServer\lib\action\resp\RespOk;
 use EdSDK\FlmngrServer\lib\MessageException;
@@ -27,7 +27,7 @@ class ActionUploadCancel extends AActionUploadId
         $this->validateUploadId($req);
         if (!$this->m_config->doKeepUploads()) {
             try {
-                UtilsPHP::delete(
+                Utils::delete(
                     $this->m_config->getTmpDir() . '/' . $req->uploadId
                 );
             } catch (Exception $e) {

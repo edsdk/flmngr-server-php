@@ -9,6 +9,7 @@
 
 namespace EdSDK\FlmngrServer;
 
+use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\resp\Response;
 use Exception;
 
@@ -21,9 +22,17 @@ class FlmngrServer
 
     static function flmngrRequest($config)
     {
-
         if (FlmngrServer::checkUploadLimit())
             return; // file size exceed the limit from php.ini
+
+        if (!isset($config['dirCache'])) {
+            $config['dirCache'] = $config['dirFiles'];
+            if (!isset($config['dirTmp']))
+                $config['dirTmp'] = Utils::normalizeNoEndSeparator($config['dirFiles'] . '/.cache/.tmp');
+        }
+
+        if (!isset($config['dirTmp']))
+            $config['dirTmp'] = Utils::normalizeNoEndSeparator($config['dirCache'] . '/.tmp');
 
         $frontController = new FlmngrFrontController($config);
         $request = $frontController->request;

@@ -9,10 +9,9 @@
 
 namespace EdSDK\FlmngrServer\fs;
 
-use EdSDK\FlmngrServer\lib\file\blurHash\Blurhash;
+use EdSDK\FlmngrServer\fs\CachedFile;
 use EdSDK\FlmngrServer\lib\action\resp\Message;
 use EdSDK\FlmngrServer\lib\file\Utils;
-use EdSDK\FlmngrServer\lib\file\UtilsPHP;
 use EdSDK\FlmngrServer\lib\MessageException;
 use EdSDK\FlmngrServer\model\FMDir;
 use EdSDK\FlmngrServer\model\FMFile;
@@ -41,6 +40,8 @@ class FMDiskFileSystem extends AFileSystem
                 FMMessage::createMessage(FMMessage::FM_ROOT_DIR_DOES_NOT_EXIST)
             );
         }
+
+        $hideDirs[] = '.cache';
 
         $this->getDirs__fill($dirs, $fDir, $hideDirs, '');
         return $dirs;
@@ -85,16 +86,17 @@ class FMDiskFileSystem extends AFileSystem
         $dirs[] = $dir;
 
         for ($i = 0; $i < count($files); $i++) {
-            if ($files[$i] !== '.' && $files[$i] !== '..') {
+            $file = $files[$i];
+            if ($file !== '.' && $file !== '..') {
 
                 $isHide = FALSE;
                 for ($j = 0; $j < count($hideDirs) && !$isHide; $j ++)
-                    $isHide = $isHide || fnmatch($hideDirs[$j], $files[$j]);
+                    $isHide = $isHide || fnmatch($hideDirs[$j], $file);
 
-                if (is_dir($fDir . '/' . $files[$i]) && !$isHide) {
+                if (is_dir($fDir . '/' . $file) && !$isHide) {
                     $this->getDirs__fill(
                         $dirs,
-                        $fDir . '/' . $files[$i],
+                        $fDir . '/' . $file,
                         $hideDirs,
                         $path . (strlen($path) > 0 ? '/' : '') . $dirName
                     );
@@ -176,7 +178,7 @@ class FMDiskFileSystem extends AFileSystem
         }
 
         $fullPath = $this->getAbsolutePath($dirPath) . '/' . $name;
-        $res = file_exists($fullPath) || mkdir($fullPath, 0777, true);
+        $res = file_exists($fullPath) || mkdir($fullPath, 0777, TRUE);
         if ($res === false) {
             throw new MessageException(
                 FMMessage::createMessage(
@@ -283,7 +285,7 @@ class FMDiskFileSystem extends AFileSystem
             $name = Utils::getNameWithoutExt($file);
             if (Utils::isImage($file)) {
                 for ($i = 0; $i < count($formatIds); $i++) {
-                    $isFormatFile = FMDiskFileSystem::endsWith($name, $formatSuffixes[$i]);
+                    $isFormatFile = Utils::endsWith($name, $formatSuffixes[$i]);
                     if ($isFormatFile) {
                         $format = $formatSuffixes[$i];
                         $name = substr($name, 0, -strlen($formatSuffixes[$i]));
@@ -494,7 +496,7 @@ class FMDiskFileSystem extends AFileSystem
             $fileFullPath = $fullPath . '/' . $fFile;
             if (is_file($fileFullPath)) {
                 try {
-                    $imageInfo = $this->getImageInfo($fileFullPath);
+                    $imageInfo = Utils::getImageInfo($fileFullPath);
                 } catch (Exception $e) {
                     $imageInfo = new ImageInfo();
                     $imageInfo->width = null;
@@ -518,21 +520,6 @@ class FMDiskFileSystem extends AFileSystem
     public function getImageSize($file)
     {
         return @getimagesize($file);
-    }
-
-    private static function getImageInfo($file)
-    {
-        $size = getimagesize($file);
-        if ($size === false) {
-            throw new MessageException(
-                Message::createMessage(Message::IMAGE_PROCESS_ERROR)
-            );
-        }
-
-        $imageInfo = new ImageInfo();
-        $imageInfo->width = $size[0];
-        $imageInfo->height = $size[1];
-        return $imageInfo;
     }
 
     private function getRootDirName()
@@ -674,7 +661,7 @@ class FMDiskFileSystem extends AFileSystem
         }
 
         $image = null;
-        switch (FMDiskFileSystem::getMimeType($srcPath)) {
+        switch (Utils::getMimeType($srcPath)) {
             case 'image/gif':
                 $image = @imagecreatefromgif($srcPath);
                 break;
@@ -715,7 +702,7 @@ class FMDiskFileSystem extends AFileSystem
         }
         imagesavealpha($image, true);
 
-        $imageInfo = FMDiskFileSystem::getImageInfo($srcPath);
+        $imageInfo = Utils::getImageInfo($srcPath);
 
         $originalWidth = $imageInfo->width;
         $originalHeight = $imageInfo->height;
@@ -804,7 +791,7 @@ class FMDiskFileSystem extends AFileSystem
 
     function copyCommited($from, $to)
     {
-        return UtilsPHP::copyFile($from, $to);
+        return Utils::copyFile($from, $to);
     }
 
     function moveDir($dirPath, $newPath)
@@ -844,7 +831,7 @@ class FMDiskFileSystem extends AFileSystem
     private function copyDir__recurse($src, $dst)
     {
         $dir = opendir($src);
-        mkdir($dst);
+        mkdir($dst, 0777, TRUE);
         while (false !== ($file = readdir($dir))) {
             if ($file != '.' && $file != '..') {
                 if (is_dir($src . '/' . $file)) {
@@ -865,229 +852,6 @@ class FMDiskFileSystem extends AFileSystem
         }
         closedir($dir);
         return true;
-    }
-
-    private static function endsWith($str, $ends)
-    {
-        return substr($str, -strlen($ends)) === $ends;
-    }
-
-    private static function getMimeType($filePath)
-    {
-        $mimeType = null;
-        $filePath = strtolower($filePath);
-        if (FMDiskFileSystem::endsWith($filePath, '.png')) {
-            $mimeType = 'image/png';
-        }
-        if (FMDiskFileSystem::endsWith($filePath, '.gif')) {
-            $mimeType = 'image/gif';
-        }
-        if (FMDiskFileSystem::endsWith($filePath, '.bmp')) {
-            $mimeType = 'image/bmp';
-        }
-        if (
-            FMDiskFileSystem::endsWith($filePath, '.jpg') ||
-            FMDiskFileSystem::endsWith($filePath, '.jpeg')
-        ) {
-            $mimeType = 'image/jpeg';
-        }
-        if (FMDiskFileSystem::endsWith($filePath, '.webp')) {
-            $mimeType = 'image/webp';
-        }
-        if (FMDiskFileSystem::endsWith($filePath, '.svg')) {
-            $mimeType = 'image/svg+xml';
-        }
-
-        return $mimeType;
-    }
-
-    function getCacheFile($filePath)
-    {
-        $fullPath = $this->getAbsolutePath($filePath);
-        return $this->dirCache . '/' . str_replace('\\', '_', str_replace('/', '_', $filePath)) . "__" . filemtime($fullPath) . "__" . filesize($fullPath);
-    }
-
-    function getCachedImageInfo($filePath)
-    {
-        $fullPath = $this->getAbsolutePath($filePath);
-        $cacheFileJson = $this->getCacheFile($filePath) . '.json';
-        if (!file_exists($cacheFileJson)) {
-
-            $size = @getimagesize($fullPath);
-
-            if ($size == FALSE) {
-                error_log("Unable to get size in file " . $cacheFileJson);
-                return NULL;
-            }
-
-            $width = $size[0];
-            $height = $size[1];
-
-            // We do not calculate BlurHash here due to this is a long operation
-            // BlurHash will be calculated and JSON file will be updated on the first getImagePreview() call
-
-            $f = fopen($cacheFileJson, 'w');
-            fwrite($f, json_encode(array(
-                'width' => $width,
-                'height' => $height
-            )));
-            fclose($f);
-        }
-
-        $content = file_get_contents($cacheFileJson);
-        if ($content === FALSE) {
-            error_log("Unable to read file " . $cacheFileJson);
-            return NULL;
-        }
-
-        $json = json_decode($content, true);
-        if ($json === null) {
-            error_log("Unable to parse JSON from file " . $cacheFileJson);
-            return NULL;
-        }
-
-        return $json;
-    }
-
-    function getImagePreview($filePath, $width, $height)
-    {
-        $fullPath = $this->getAbsolutePath($filePath);
-
-        if (!file_exists($this->dirCache)) {
-            if (!mkdir($this->dirCache)) {
-                throw new MessageException(
-                    FMMessage::createMessage(
-                        FMMessage::FM_UNABLE_TO_CREATE_DIRECTORY
-                    )
-                );
-            }
-        }
-
-        $fileCachedPath = $this->getCacheFile($filePath) . '__' . $width . '__' . $height . '.png';
-        if (!file_exists($fileCachedPath)) {
-            $image = null;
-            switch (FMDiskFileSystem::getMimeType($fullPath)) {
-                case 'image/gif':
-                    $image = @imagecreatefromgif($fullPath);
-                    break;
-                case 'image/jpeg':
-                    $image = @imagecreatefromjpeg($fullPath);
-                    break;
-                case 'image/png':
-                    $image = @imagecreatefrompng($fullPath);
-                    break;
-                case 'image/bmp':
-                    $image = @imagecreatefromwbmp($fullPath);
-                    break;
-                case 'image/webp':
-                    // If you get problems with WEBP preview creation, please consider updating GD > 2.2.4
-                    // https://stackoverflow.com/questions/59621626/converting-webp-to-jpeg-in-with-php-gd-library
-                    $image = @imagecreatefromwebp($fullPath);
-                    break;
-                case 'image/svg+xml':
-                    return ['image/svg+xml', fopen($fullPath, 'rb')];
-            }
-
-            // Somewhy it can not read ONLY SOME JPEG files, we've caught it on Windows + IIS + PHP
-            // Solution from here: https://github.com/libgd/libgd/issues/206
-            if (!$image) {
-                $image = imagecreatefromstring(file_get_contents($fullPath));
-            }
-            // end of fix
-
-            if (!$image) {
-                throw new MessageException(
-                    Message::createMessage(Message::IMAGE_PROCESS_ERROR)
-                );
-            }
-            imagesavealpha($image, true);
-
-            // TODO:
-            // throw new MessageException(FMMessage.createMessage(FMMessage.FM_UNABLE_TO_CREATE_PREVIEW));
-
-            $imageInfo = FMDiskFileSystem::getImageInfo($fullPath);
-            $xx = $imageInfo->width;
-            $yy = $imageInfo->height;
-            $ratio_original = $xx / $yy; // ratio original
-
-            if ($width == NULL) {
-                $width = floor($ratio_original * $height);
-            } else if ($height == NULL) {
-                $height = floor((1 / $ratio_original) * $width);
-            }
-
-            $ratio_thumb = $width / $height; // ratio thumb
-
-            if ($ratio_original >= $ratio_thumb) {
-                $yo = $yy;
-                $xo = ceil(($yo * $width) / $height);
-                $xo_ini = ceil(($xx - $xo) / 2);
-                $xy_ini = 0;
-            } else {
-                $xo = $xx;
-                $yo = ceil(($xo * $height) / $width);
-                $xy_ini = ceil(($yy - $yo) / 2);
-                $xo_ini = 0;
-            }
-
-            $resizedImage = imagecreatetruecolor($width, $height);
-
-            $colorGray1 = imagecolorallocate($resizedImage, 240, 240, 240);
-            $colorGray2 = imagecolorallocate($resizedImage, 250, 250, 250);
-            $rectSize = 20;
-            for ($x = 0; $x <= floor($width / $rectSize); $x++)
-                for ($y = 0; $y <= floor($height / $rectSize); $y++)
-                    imagefilledrectangle($resizedImage, $x*$rectSize, $y*$rectSize, $width, $height, ($x + $y) % 2 == 0 ? $colorGray1 : $colorGray2);
-
-
-            imagecopyresampled(
-                $resizedImage,
-                $image,
-                0,
-                0,
-                $xo_ini,
-                $xy_ini,
-                $width,
-                $height,
-                $xo,
-                $yo
-            );
-
-            if (imagepng($resizedImage, $fileCachedPath) === false) {
-                throw new MessageException(
-                    FMMessage::createMessage(
-                        FMMessage::FM_UNABLE_TO_WRITE_PREVIEW_IN_CACHE_DIR,
-                        $fileCachedPath
-                    )
-                );
-            }
-        }
-
-        // Update BlurHash if required
-        $cachedImageInfo = $this->getCachedImageInfo($filePath);
-        if (!isset($cachedImageInfo["blurHash"])) {
-
-            $pixels = [];
-            for ($y = 0; $y < $height; $y++) {
-                $row = [];
-                for ($x = 0; $x < $width; $x++) {
-                    $index = imagecolorat($resizedImage, $x, $y);
-                    $colors = imagecolorsforindex($resizedImage, $index);
-                    $row[] = [$colors['red'], $colors['green'], $colors['blue']];
-                }
-                $pixels[] = $row;
-            }
-
-            $components_x = 4;
-            $components_y = 3;
-
-            $cachedImageInfo["blurHash"] = Blurhash::encode($pixels, $components_x, $components_y);
-            $f = fopen($this->getCacheFile($filePath) . ".json", 'w');
-            fwrite($f, json_encode($cachedImageInfo));
-            fclose($f);
-        }
-
-        return ['image/png', $fileCachedPath];
     }
 
     function getImageOriginal($filePath)
@@ -1122,5 +886,26 @@ class FMDiskFileSystem extends AFileSystem
     function getDirZipArchive($dirPath, $out)
     {
         // TODO: Implement getDirZipArchive() method.
+    }
+
+    function getCachedImageInfo($filePath) {
+        $cachedFile = new CachedFile(
+            $this->getRelativePath($filePath),
+            $this->getAbsolutePath($filePath),
+            $this->dirFiles,
+            $this->dirCache
+        );
+        return $cachedFile->getInfo();
+    }
+
+    function getImagePreview($filePath, $width, $height)
+    {
+        $cachedFile = new CachedFile(
+            $this->getRelativePath($filePath),
+            $this->getAbsolutePath($filePath),
+            $this->dirFiles,
+            $this->dirCache
+        );
+        return $cachedFile->getPreview($width, $height);
     }
 }

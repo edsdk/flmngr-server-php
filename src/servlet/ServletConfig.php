@@ -11,7 +11,6 @@ namespace EdSDK\FlmngrServer\servlet;
 
 use EdSDK\FlmngrServer\lib\config\IConfig;
 use EdSDK\FlmngrServer\lib\file\Utils;
-use EdSDK\FlmngrServer\lib\file\UtilsPHP;
 use EdSDK\FlmngrServer\fs\AFileSystem;
 use Exception;
 
@@ -89,30 +88,31 @@ class ServletConfig implements IConfig
             throw new Exception('dirFiles not set');
         }
         if (!file_exists($dir)) {
-            if (!mkdir($dir, 0777, true)) {
+            if (!mkdir($dir, 0777, TRUE)) {
                 throw new Exception(
                     "Unable to create files directory '" . $dir . "''"
                 );
             }
         }
-        return UtilsPHP::normalizeNoEndSeparator($dir);
+        return Utils::normalizeNoEndSeparator($dir);
     }
 
     public function getTmpDir()
     {
         $dir = $this->getParameter(
-            'dirTmp',
-            $this->getBaseDir() . '/tmp',
+            "dirTmp",
+            Utils::normalizeNoEndSeparator($this->getBaseDir()) . '/.cache/.tmp',
             true
         );
+
         if (!file_exists($dir)) {
-            if (!mkdir($dir)) {
+            if (!mkdir($dir, 0777, TRUE)) {
                 throw new Exception(
                     "Unable to create temporary files directory '" . $dir . "''"
                 );
             }
         }
-        return UtilsPHP::normalizeNoEndSeparator($dir);
+        return Utils::normalizeNoEndSeparator($dir);
     }
 
     public function getMaxUploadFileSize()

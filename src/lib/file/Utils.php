@@ -9,6 +9,11 @@
 
 namespace EdSDK\FlmngrServer\lib\file;
 
+use EdSDK\FlmngrServer\lib\action\resp\Message;
+use EdSDK\FlmngrServer\lib\MessageException;
+use EdSDK\FlmngrServer\model\ImageInfo;
+use Exception;
+
 class Utils
 {
     public static function getNameWithoutExt($filename)
@@ -146,6 +151,98 @@ class Utils
             $value = substr(0, strlen($value) - 1);
         }
         return $value;
+    }
+
+    public static function getMimeType($filePath)
+    {
+        $mimeType = null;
+        $filePath = strtolower($filePath);
+        if (Utils::endsWith($filePath, '.png')) {
+            $mimeType = 'image/png';
+        }
+        if (Utils::endsWith($filePath, '.gif')) {
+            $mimeType = 'image/gif';
+        }
+        if (Utils::endsWith($filePath, '.bmp')) {
+            $mimeType = 'image/bmp';
+        }
+        if (
+            Utils::endsWith($filePath, '.jpg') ||
+            Utils::endsWith($filePath, '.jpeg')
+        ) {
+            $mimeType = 'image/jpeg';
+        }
+        if (Utils::endsWith($filePath, '.webp')) {
+            $mimeType = 'image/webp';
+        }
+        if (Utils::endsWith($filePath, '.svg')) {
+            $mimeType = 'image/svg+xml';
+        }
+
+        return $mimeType;
+    }
+
+    public static function endsWith($str, $ends)
+    {
+        return substr($str, -strlen($ends)) === $ends;
+    }
+
+    public static function getImageInfo($file)
+    {
+        $size = getimagesize($file);
+        if ($size === false) {
+            throw new MessageException(
+                Message::createMessage(Message::IMAGE_PROCESS_ERROR)
+            );
+        }
+
+        $imageInfo = new ImageInfo();
+        $imageInfo->width = $size[0];
+        $imageInfo->height = $size[1];
+        return $imageInfo;
+    }
+
+    public static function cleanDirectory($dir)
+    {
+        Utils::delete($dir, false);
+    }
+
+    public static function delete($dirOrFile, $deleteSelfDir = true)
+    {
+        if (is_file($dirOrFile)) {
+            $result = is_dir($dirOrFile)
+                ? rmdir($dirOrFile)
+                : unlink($dirOrFile);
+            if (!$result) {
+                throw new Exception('Unable to delete file: ' . $dirOrFile);
+            }
+        } elseif (is_dir($dirOrFile)) {
+            $scan = glob(rtrim($dirOrFile, '/') . '/*');
+            foreach ($scan as $index => $path) {
+                Utils::delete($path);
+            }
+            if ($deleteSelfDir) {
+                if (!rmdir($dirOrFile)) {
+                    throw new Exception(
+                        'Unable to delete directory: ' . $dirOrFile
+                    );
+                }
+            }
+        }
+    }
+
+    public static function copyFile($src, $dst)
+    {
+        // File will be overwritten if exists - it is OK
+        if (!copy($src, $dst)) {
+            throw new Exception('Unable to copy file ' . $src . ' to ' . $dst);
+        }
+    }
+
+    public static function normalizeNoEndSeparator($path)
+    {
+        // TODO: normalize
+        return rtrim($path, '/');
     }
 
 }
