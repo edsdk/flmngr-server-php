@@ -856,7 +856,7 @@ class FMDiskFileSystem extends AFileSystem
 
     function getImageOriginal($filePath)
     {
-        $mimeType = FMDiskFileSystem::getMimeType($filePath);
+        $mimeType = Utils::getMimeType($filePath);
         if ($mimeType == null) {
             throw new MessageException(
                 FMMessage::createMessage(FMMessage::FM_FILE_IS_NOT_IMAGE)
