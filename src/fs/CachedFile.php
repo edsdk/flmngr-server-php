@@ -130,6 +130,7 @@ class CachedFile {
             }
         }
 
+        $resizedImage = null;
         if (!file_exists($cacheFilePreviewAbsolute)) {
             $image = null;
             switch (Utils::getMimeType($this->fileAbsolute)) {
@@ -246,10 +247,14 @@ class CachedFile {
         // Update BlurHash if required
         if (!isset($cachedImageInfo["blurHash"])) {
 
+            if ($resizedImage == null)
+                $resizedImage = @imagecreatefrompng($cacheFilePreviewAbsolute);
+            $previewImageInfo = Utils::getImageInfo($cacheFilePreviewAbsolute);
+
             $pixels = [];
-            for ($y = 0; $y < $height; $y++) {
+            for ($y = 0; $y < $previewImageInfo->height; $y++) {
                 $row = [];
-                for ($x = 0; $x < $width; $x++) {
+                for ($x = 0; $x < $previewImageInfo->width; $x++) {
                     $index = imagecolorat($resizedImage, $x, $y);
                     $colors = imagecolorsforindex($resizedImage, $index);
                     $row[] = [$colors['red'], $colors['green'], $colors['blue']];
@@ -261,8 +266,10 @@ class CachedFile {
             $components_y = 3;
 
             $cachedImageInfo = $this->getInfo();
-            $cachedImageInfo["blurHash"] = Blurhash::encode($pixels, $components_x, $components_y);
-            $this->writeInfo($cachedImageInfo);
+            if (count($pixels) > 0) {
+                $cachedImageInfo["blurHash"] = Blurhash::encode($pixels, $components_x, $components_y);
+                $this->writeInfo($cachedImageInfo);
+            }
         }
 
         return ['image/png', $cacheFilePreviewAbsolute];

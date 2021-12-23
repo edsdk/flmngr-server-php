@@ -30,7 +30,7 @@ class ActionQuickUpload extends AActionUploadId
 
         if ($req->m_file) {
             if (
-                array_key_exists('dir', $this->m_config->request->post) &&
+                isset($this->m_config->request->post['dir']) &&
                 $this->m_config->request->post['dir'] &&
                 $this->m_config->request->post['dir'] != '/' &&
                 $this->m_config->request->post['dir'] != '' &&

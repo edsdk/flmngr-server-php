@@ -463,18 +463,20 @@ class FlmngrServer
             $configUploader = [
                 'dirFiles' => $config['dirFiles'],
                 'dirTmp' => $config['dirTmp'],
+                'filesystem' => $config['filesystem'],
                 'config' => isset($config['uploader'])
                     ? $config['uploader']
                     : [],
                 'request' => $config['request'],
             ];
 
+            $dir = isset($config['request']->post['dir']) ? $config['request']->post['dir'] : null;
             $post = [
                 'action' => $config['request']->post['action'],
-                'dir' => $config['request']->post['dir'],
+                'dir' => $dir,
                 'data' => JsonCodec::s_toJson([
                     'action' => $config['request']->post['action'],
-                    'dir' => $config['request']->post['dir'],
+                    'dir' => $dir
                 ]),
             ];
             FileUploaderServer::fileUploadRequest(

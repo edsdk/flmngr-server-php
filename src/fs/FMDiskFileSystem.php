@@ -232,7 +232,7 @@ class FMDiskFileSystem extends AFileSystem
     private function profile($text, $start) {
         $now = microtime(true);
         $time = $now - $start;
-        error_log($text. " done in ".number_format($time/1000, 5, ",", "")." sec\n");
+        //error_log($text. " done in ".number_format($time/1000, 5, ",", "")." sec\n");
         return $now;
     }
 
