@@ -73,7 +73,7 @@ class ActionUploadCommit extends AActionUploadId
         $req->doCommit = $this->validateBoolean($req->doCommit, true);
 
         // Legacy way to set mode
-        if (isset($req->autoRename))
+        if (isset($req->autoRename) && !isset($req->mode))
             $req->mode = $this->validateBoolean($req->autoRename, false) ? "AUTORENAME" : "ASK";
 
         if (
