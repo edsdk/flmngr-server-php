@@ -17,6 +17,8 @@ use EdSDK\FlmngrServer\lib\JsonCodec;
 use EdSDK\FlmngrServer\lib\action\resp\Message;
 use EdSDK\FlmngrServer\lib\MessageException;
 
+ini_set('display_errors', 0);
+
 class FlmngrServer
 {
 

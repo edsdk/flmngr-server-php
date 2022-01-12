@@ -23,6 +23,8 @@ class CachedFile {
     private $dirCache;
 
     private $cacheFileAbsolute; // $dirCache/path/to/file.jpg (.json|.png will be added later)
+    private $cacheFileJsonAbsolute;
+    private $cacheFilePreviewAbsolute;
 
     function __construct(
         $fileRelative, // Example: /path/to/file.jpg
@@ -108,6 +110,10 @@ class CachedFile {
     }
 
     private function writeInfo($info) {
+        $dirname = dirname($this->cacheFileJsonAbsolute);
+        if (!is_dir($dirname)) {
+            mkdir($dirname, 0777, TRUE);
+        }
         $f = fopen($this->cacheFileJsonAbsolute, 'w');
         fwrite($f, json_encode($info));
         fclose($f);
