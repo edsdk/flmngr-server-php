@@ -3,15 +3,14 @@ namespace EdSDK\FlmngrServer\lib;
 
 use EdSDK\FlmngrServer\lib\IFmRequest;
 
-class CommonRequest extends IFmRequest
+class DrupalRequest extends IFmRequest
 {
     public function parseRequest()
     {
-        $request = $this->config['drupalRequestStack']->getCurrentRequest()
-            ->request;
+        $request = $this->config['drupalRequestStack']->getCurrentRequest();
         $this->requestMethod = $request->getMethod();
         $this->files = $_FILES;
-        $this->post = $request->request;
-        $this->get = $request->query;
+        $this->post = $request->request->all();
+        $this->get = $request->query->all();
     }
 }

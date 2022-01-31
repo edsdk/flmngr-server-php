@@ -29,6 +29,7 @@ To handle some URL you want in your web application, create a file which will be
     // header('Access-Control-Allow-Origin: *');
     
     echo FlmngrServer::flmngrRequest([
+<<<<<<< HEAD
     'dirFiles' => __DIR__ . '/files',
     'dirTmp' => __DIR__ . '/tmp',
     'dirCache' => __DIR__ . '/cache',
@@ -39,6 +40,10 @@ To handle some URL you want in your web application, create a file which will be
         'config' => [ ],
     ],
 ]);
+=======
+        'dirFiles' => __DIR__ . '/files',
+    ]);
+>>>>>>> fe692edf858c6033a5c23086c4d3d4df3010df37
 ```
 
 This file `flmngr.php` should be placed on the same level with `vendor` directory. If can be placed in some other place too, but do not forget to change path in `require` call.

@@ -9,6 +9,7 @@
 
 namespace EdSDK\FlmngrServer;
 
+use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\resp\Response;
 use Exception;
 
@@ -16,22 +17,31 @@ use EdSDK\FlmngrServer\lib\JsonCodec;
 use EdSDK\FlmngrServer\lib\action\resp\Message;
 use EdSDK\FlmngrServer\lib\MessageException;
 
+ini_set('display_errors', 0);
+
 class FlmngrServer
 {
     static function flmngrRequest($config)
     {
-        if (FlmngrServer::checkUploadLimit()) {
-            return;
-        } // file size exceed the limit from php.ini
+        if (FlmngrServer::checkUploadLimit())
+            return; // file size exceed the limit from php.ini
+
+        if (!isset($config['dirCache'])) {
+            $config['dirCache'] = $config['dirFiles'];
+            if (!isset($config['dirTmp']))
+                $config['dirTmp'] = Utils::normalizeNoEndSeparator($config['dirFiles'] . '/.cache/.tmp');
+        }
+
+        if (!isset($config['dirTmp']))
+            $config['dirTmp'] = Utils::normalizeNoEndSeparator($config['dirCache'] . '/.tmp');
 
         $frontController = new FlmngrFrontController($config);
         $request = $frontController->request;
         $config['filesystem'] = $frontController->filesystem;
 
         if (isset($request->post['embedPreviews'])) {
-            $config['filesystem']->setEmbedPreviews(
-                $request->post['embedPreviews']
-            );
+            $config['filesystem']->embedPreviews = $request->post['embedPreviews'];
+            
         }
 
         $action = null;
@@ -351,15 +361,11 @@ class FlmngrServer
             $files = $fileSystem->getFilesPaged(
                 $config['request']->post['dir'],
                 $config['request']->post['maxFiles'],
-                isset($config['request']->post['lastFile'])
-                    ? $config['request']->post['lastFile']
-                    : null,
-                isset($config['request']->post['lastIndex'])
-                    ? $config['request']->post['lastIndex']
-                    : null,
-                $config['request']->post['whiteList'],
-                $config['request']->post['blackList'],
-                $config['request']->post['filter'],
+                isset($config['request']->post['lastFile']) ? $config['request']->post['lastFile'] : NULL,
+                isset($config['request']->post['lastIndex']) ? $config['request']->post['lastIndex'] : NULL,
+                isset($config['request']->post['whiteList']) ? $config['request']->post['whiteList'] : [],
+                isset($config['request']->post['blackList']) ? $config['request']->post['blackList'] : [],
+                isset($config['request']->post['filter']) ? $config['request']->post['filter'] : "**",
                 $config['request']->post['orderBy'],
                 $config['request']->post['orderAsc'],
                 $config['request']->post['formatIds'],
@@ -479,18 +485,20 @@ class FlmngrServer
             $configUploader = [
                 'dirFiles' => $config['dirFiles'],
                 'dirTmp' => $config['dirTmp'],
+                'filesystem' => $config['filesystem'],
                 'config' => isset($config['uploader'])
                     ? $config['uploader']
                     : [],
                 'request' => $config['request'],
             ];
 
+            $dir = isset($config['request']->post['dir']) ? $config['request']->post['dir'] : null;
             $post = [
                 'action' => $config['request']->post['action'],
-                'dir' => $config['request']->post['dir'],
+                'dir' => $dir,
                 'data' => JsonCodec::s_toJson([
                     'action' => $config['request']->post['action'],
-                    'dir' => $config['request']->post['dir'],
+                    'dir' => $dir
                 ]),
             ];
             FileUploaderServer::fileUploadRequest(

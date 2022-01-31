@@ -9,14 +9,13 @@
 
 namespace EdSDK\FlmngrServer\servlet;
 
-use EdSDK\FlmngrServer\lib\file\UtilsPHP;
+use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\action\req\ReqError;
 use EdSDK\FlmngrServer\lib\action\resp\Message;
 use EdSDK\FlmngrServer\lib\action\resp\RespFail;
 use EdSDK\FlmngrServer\lib\Actions;
 use EdSDK\FlmngrServer\lib\JsonCodec;
 use EdSDK\FlmngrServer\lib\Uploader;
-use EdSDK\FlmngrServer\lib\file\FileUploadedQuick;
 use Exception;
 
 class UploaderServlet
@@ -78,8 +77,8 @@ class UploaderServlet
 
     protected function clearAllFiles()
     {
-        UtilsPHP::cleanDirectory($this->m_config->getTmpDir());
-        UtilsPHP::cleanDirectory($this->m_config->getBaseDir());
+        Utils::cleanDirectory($this->m_config->getTmpDir());
+        Utils::cleanDirectory($this->m_config->getBaseDir());
     }
 
     protected function addHeaders()

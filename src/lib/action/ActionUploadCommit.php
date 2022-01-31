@@ -11,7 +11,6 @@ namespace EdSDK\FlmngrServer\lib\action;
 
 use EdSDK\FlmngrServer\lib\file\FileUploaded;
 use EdSDK\FlmngrServer\lib\file\Utils;
-use EdSDK\FlmngrServer\lib\file\UtilsPHP;
 use EdSDK\FlmngrServer\lib\action\resp\Message;
 use EdSDK\FlmngrServer\lib\action\resp\RespOk;
 use EdSDK\FlmngrServer\lib\action\resp\RespUploadCommit;
@@ -74,7 +73,7 @@ class ActionUploadCommit extends AActionUploadId
         $req->doCommit = $this->validateBoolean($req->doCommit, true);
 
         // Legacy way to set mode
-        if (isset($req->autoRename))
+        if (isset($req->autoRename) && !isset($req->mode))
             $req->mode = $this->validateBoolean($req->autoRename, false) ? "AUTORENAME" : "ASK";
 
         if (
@@ -92,16 +91,16 @@ class ActionUploadCommit extends AActionUploadId
             $req->dir = '/' . $req->dir;
         }
 
-        if (UtilsPHP::normalizeNoEndSeparator($req->dir) === null) {
+        if (Utils::normalizeNoEndSeparator($req->dir) === null) {
             throw new MessageException(
                 Message::createMessage(Message::DIR_DOES_NOT_EXIST, $req->dir)
             );
         }
 
-        $req->dir = UtilsPHP::normalizeNoEndSeparator($req->dir) . '/';
+        $req->dir = Utils::normalizeNoEndSeparator($req->dir) . '/';
 
         $dir = $this->m_config->getBaseDir() . $req->dir;
-        if (!file_exists($dir) && !mkdir($dir, 0777, true)) {
+        if (!file_exists($dir) && !mkdir($dir, 0777, TRUE)) {
             throw new MessageException(
                 Message::createMessage(Message::DIR_DOES_NOT_EXIST, $req->dir)
             );
@@ -240,7 +239,7 @@ class ActionUploadCommit extends AActionUploadId
 
         if (!$this->m_config->doKeepUploads()) {
             try {
-                UtilsPHP::delete(
+                Utils::delete(
                     $this->m_config->getTmpDir() . '/' . $req->uploadId
                 );
             } catch (Exception $e) {

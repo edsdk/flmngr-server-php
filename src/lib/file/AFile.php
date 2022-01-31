@@ -277,7 +277,7 @@ abstract class AFile
     public function copyTo($dstFile)
     {
         try {
-            UtilsPHP::copyFile($this->getFullPath(), $dstFile->getFullPath());
+            Utils::copyFile($this->getFullPath(), $dstFile->getFullPath());
         } catch (Exception $e) {
             error_log($e);
             throw new MessageException(

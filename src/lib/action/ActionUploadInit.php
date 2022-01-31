@@ -32,7 +32,7 @@ class ActionUploadInit extends AAction
             $dir = $this->m_config->getTmpDir() . '/' . $id;
         } while (file_exists($dir));
 
-        if (!mkdir($dir)) {
+        if (!mkdir($dir, 0777, TRUE)) {
             throw new MessageException(
                 Message::createMessage(Message::UNABLE_TO_CREATE_UPLOAD_DIR)
             );
