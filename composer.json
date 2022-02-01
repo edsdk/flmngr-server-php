@@ -9,8 +9,12 @@
 
     "authors": [
         {
-            "name": "EdSDK",
-            "email": "edsdk@edsdk.com"
+            "name": "EdSDK / N1ED / Flmngr team",
+            "email": "support@n1ed.zendesk.com"
+        },
+        {
+            "name": "Ilia Kandaurov",
+            "email": "ilia@kandaurov.su"
         }
     ],
     "autoload": {
@@ -19,7 +23,6 @@
         }
     },
     "require": {
-        "edsdk/file-uploader-server-php": "^1.0.34",
         "ext-gd": "*",
         "ext-curl": "*",
         "ext-json": "*"

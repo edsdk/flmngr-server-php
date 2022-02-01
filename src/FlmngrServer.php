@@ -9,341 +9,490 @@
 
 namespace EdSDK\FlmngrServer;
 
+use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\resp\Response;
 use Exception;
 
-use EdSDK\FileUploaderServer\FileUploaderServer;
-use EdSDK\FileUploaderServer\lib\JsonCodec;
-use EdSDK\FileUploaderServer\lib\action\resp\Message;
-use EdSDK\FileUploaderServer\lib\MessageException;
+use EdSDK\FlmngrServer\lib\JsonCodec;
+use EdSDK\FlmngrServer\lib\action\resp\Message;
+use EdSDK\FlmngrServer\lib\MessageException;
 
-use EdSDK\FlmngrServer\fs\FMDiskFileSystem;
+ini_set('display_errors', 0);
 
-class FlmngrServer {
+class FlmngrServer
+{
 
-  static function flmngrRequest($config) {
+    static function flmngrRequest($config)
+    {
+        if (FlmngrServer::checkUploadLimit())
+            return; // file size exceed the limit from php.ini
 
-    $action = NULL;
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!isset($config['dirCache'])) {
+            $config['dirCache'] = $config['dirFiles'];
+            if (!isset($config['dirTmp']))
+                $config['dirTmp'] = Utils::normalizeNoEndSeparator($config['dirFiles'] . '/.cache/.tmp');
+        }
 
-      // Default action is "upload" if requester tries to upload a file
-      // This is support for generic files upload in WYSIWYG editors
-      if ((isset($_FILES["file"]) || isset($_FILES["upload"])) && (!isset($_POST["action"])) && (!isset($_POST['data']))) {
-        $json = array(
-          "action" => "upload"
-        );
-        $_POST["data"] = json_encode($json);
-      }
+        if (!isset($config['dirTmp']))
+            $config['dirTmp'] = Utils::normalizeNoEndSeparator($config['dirCache'] . '/.tmp');
 
-      if (isset($_POST['action'])) {
-        $action = $_POST['action'];
-      }
-      if ($action == NULL && isset($_POST["data"])) {
-        $configUploader = [
-          "dirFiles" => $config["dirFiles"],
-          "dirTmp" => $config["dirTmp"],
-          "config" => isset($config["uploader"]) ? $config["uploader"] : [],
-        ];
-        FileUploaderServer::fileUploadRequest($configUploader, $_POST, $_FILES);
-        return;
-      }
+        $frontController = new FlmngrFrontController($config);
+        $request = $frontController->request;
+        $config['filesystem'] = $frontController->filesystem;
+        $action = null;
+        if ($request->requestMethod === 'POST') {
+            // Default action is "upload" if requester tries to upload a file
+            // This is support for generic files upload in WYSIWYG editors
+            if (
+                (
+                    isset($request->files['file']) ||
+                    isset($request->files['upload'])
+                ) &&
+                !isset($request->post['action']) &&
+                !isset($request->post['data'])
+            ) {
+                $json = [
+                    'action' => 'upload',
+                ];
+                $request->post['data'] = json_encode($json);
+            }
+
+            if (isset($request->post['action'])) {
+                $action = $request->post['action'];
+            }
+            if ($action == null && isset($request->post['data'])) {
+                $configUploader = [
+                    'dirFiles' => $config['dirFiles'],
+                    'dirTmp' => $config['dirTmp'],
+                    'filesystem' => $config['filesystem'],
+                    'config' => isset($config['uploader'])
+                        ? $config['uploader']
+                        : [],
+                ];
+                FileUploaderServer::fileUploadRequest(
+                    $configUploader,
+                    $request->post,
+                    $request->files
+                );
+                return;
+            }
+        } else {
+            if ($request->requestMethod === 'GET') {
+                $action = $request->get['action'];
+            } else {
+                return;
+            }
+        }
+        $config['request'] = $request;
+
+        try {
+            switch ($action) {
+                case 'dirList':
+                    $resp = FlmngrServer::reqDirList($config);
+                    break;
+                case 'dirCreate':
+                    $resp = FlmngrServer::reqDirCreate($config);
+                    break;
+                case 'dirRename':
+                    $resp = FlmngrServer::reqDirRename($config);
+                    break;
+                case 'dirDelete':
+                    $resp = FlmngrServer::reqDirDelete($config);
+                    break;
+                case 'dirCopy':
+                    $resp = FlmngrServer::reqDirCopy($config);
+                    break;
+                case 'dirMove':
+                    $resp = FlmngrServer::reqDirMove($config);
+                    break;
+                case 'dirDownload':
+                    $resp = FlmngrServer::reqDirDownload($config);
+                    break;
+                case 'fileList':
+                    $resp = FlmngrServer::reqFileList($config);
+                    break;
+                case 'fileListPaged':
+                    $resp = FlmngrServer::reqFileListPaged($config);
+                    break;
+                case 'fileDelete':
+                    $resp = FlmngrServer::reqFileDelete($config);
+                    break;
+                case 'fileCopy':
+                    $resp = FlmngrServer::reqFileCopy($config);
+                    break;
+                case 'fileRename':
+                    $resp = FlmngrServer::reqFileRename($config);
+                    break;
+                case 'fileMove':
+                    $resp = FlmngrServer::reqFileMove($config);
+                    break;
+                case 'fileResize':
+                    $resp = FlmngrServer::reqFileResize($config);
+                    break;
+                case 'fileOriginal':
+                    $resp = FlmngrServer::reqFileOriginal($config); // will die after valid response or throw MessageException
+                    break;
+                case 'filePreview':
+                    $resp = FlmngrServer::reqFilePreview($config); // will die after valid response or throw MessageException
+                    break;
+                case 'upload':
+                    $resp = FlmngrServer::upload($config); // will die after valid response or throw MessageException
+                    break;
+                case 'getVersion':
+                    $resp = FlmngrServer::getVersion();
+                    break;
+                default:
+                    $resp = new Response(
+                        Message::createMessage(Message::ACTION_NOT_FOUND),
+                        null
+                    );
+            }
+        } catch (MessageException $e) {
+            $resp = new Response($e->getFailMessage(), null);
+        }
+
+        $strResp = JsonCodec::s_toJson($resp);
+
+        try {
+            http_response_code(200);
+            header('Content-Type: application/json; charset=UTF-8');
+            print $strResp;
+        } catch (Exception $e) {
+            error_log($e);
+        }
     }
-    else {
-      if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        $action = $_GET['action'];
-      }
-      else {
-        return;
-      }
+
+    private static function iniGetBytes($val)
+    {
+        $val = trim(ini_get($val));
+        if ($val != '') {
+            $last = strtolower(substr($val, strlen($val) - 1));
+        } else {
+            $last = '';
+        }
+        if ($last !== '') {
+            $val = substr($val, 0, strlen($val) - 1);
+        }
+
+        switch ($last) {
+            // The 'G' modifier is available since PHP 5.1.0
+            case 'g':
+                $val *= 1024;
+            // fall through
+            case 'm':
+                $val *= 1024;
+            // fall through
+            case 'k':
+                $val *= 1024;
+            // fall through
+        }
+
+        return $val;
     }
 
-    try {
-      switch ($action) {
-        case 'dirList':
-          $resp = FlmngrServer::reqDirList($config);
-          break;
-        case 'dirCreate':
-          $resp = FlmngrServer::reqDirCreate($config);
-          break;
-        case 'dirRename':
-          $resp = FlmngrServer::reqDirRename($config);
-          break;
-        case 'dirDelete':
-          $resp = FlmngrServer::reqDirDelete($config);
-          break;
-        case 'dirCopy':
-          $resp = FlmngrServer::reqDirCopy($config);
-          break;
-        case 'dirMove':
-          $resp = FlmngrServer::reqDirMove($config);
-          break;
-        case 'dirDownload':
-          $resp = FlmngrServer::reqDirDownload($config);
-          break;
-        case 'fileList':
-          $resp = FlmngrServer::reqFileList($config);
-          break;
-        case 'fileDelete':
-          $resp = FlmngrServer::reqFileDelete($config);
-          break;
-        case 'fileCopy':
-          $resp = FlmngrServer::reqFileCopy($config);
-          break;
-        case 'fileRename':
-          $resp = FlmngrServer::reqFileRename($config);
-          break;
-        case 'fileMove':
-          $resp = FlmngrServer::reqFileMove($config);
-          break;
-        case 'fileResize':
-          $resp = FlmngrServer::reqFileResize($config);
-          break;
-        case 'fileOriginal':
-          $resp = FlmngrServer::reqFileOriginal($config); // will die after valid response or throw MessageException
-          break;
-        case 'filePreview':
-          $resp = FlmngrServer::reqFilePreview($config); // will die after valid response or throw MessageException
-          break;
-        case 'upload':
-          $resp = FlmngrServer::upload($config); // will die after valid response or throw MessageException
-          break;
-        case 'getVersion':
-          $resp = FlmngrServer::getVersion();
-          break;
-        default:
-          $resp = new Response(Message::createMessage(Message::ACTION_NOT_FOUND), NULL);
-      }
-    } catch (MessageException $e) {
-      $resp = new Response($e->getFailMessage(), NULL);
+    private static function checkUploadLimit() {
+        if (isset($_SERVER["CONTENT_LENGTH"])) {
+            if ($_SERVER["CONTENT_LENGTH"] > (FlmngrServer::iniGetBytes('post_max_size'))) {
+
+                $resp = new Response(
+                    Message::createMessage(
+                        Message::FILE_SIZE_EXCEEDS_SYSTEM_LIMIT,
+                        '' . $_SERVER["CONTENT_LENGTH"],
+                        '' . FlmngrServer::iniGetBytes('post_max_size')
+                    ),
+                    null
+                );
+
+                $strResp = JsonCodec::s_toJson($resp);
+
+                try {
+                    http_response_code(200);
+                    header('Content-Type: application/json; charset=UTF-8');
+                    print $strResp;
+                } catch (Exception $e) {
+                    error_log($e);
+                }
+
+                return true;
+            }
+        }
+        return false;
     }
 
-    //print_r($resp);
-    $strResp = JsonCodec::s_toJson($resp);
-
-    try {
-      http_response_code(200);
-      header('Content-Type: application/json; charset=UTF-8');
-      print($strResp);
-    } catch (Exception $e) {
-      error_log($e);
+    private static function reqDirCopy($config)
+    {
+        $dirPath = $config['request']->post['d'];
+        $newPath = $config['request']->post['n'];
+        try {
+            $fileSystem = $config['filesystem'];
+            $fileSystem->copyDir($dirPath, $newPath);
+            return new Response(null, true);
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
     }
 
-  }
-
-  private static function reqDirCopy($config) {
-    $dirPath = $_POST['d'];
-    $newPath = $_POST['n'];
-    try {
-      $fileSystem = new FMDiskFileSystem($config);
-      $fileSystem->copyDir($dirPath, $newPath);
-      return new Response(NULL, TRUE);
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
+    private static function reqDirCreate($config)
+    {
+        $dirPath = $config['request']->post['d'];
+        $name = $config['request']->post['n'];
+        try {
+            $fileSystem = $config['filesystem'];
+            $fileSystem->createDir($dirPath, $name);
+            return new Response(null, true);
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
     }
-  }
 
-  private static function reqDirCreate($config) {
-    $dirPath = $_POST['d'];
-    $name = $_POST['n'];
-    try {
-      $fileSystem = new FMDiskFileSystem($config);
-      $fileSystem->createDir($dirPath, $name);
-      return new Response(NULL, TRUE);
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
+    private static function reqDirDelete($config)
+    {
+        $dirPath = $config['request']->post['d'];
+        try {
+            $fileSystem = $config['filesystem'];
+            $fileSystem->deleteDir($dirPath);
+            return new Response(null, true);
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
     }
-  }
 
-  private static function reqDirDelete($config) {
-    $dirPath = $_POST['d'];
-    try {
-      $fileSystem = new FMDiskFileSystem($config);
-      $fileSystem->deleteDir($dirPath);
-      return new Response(NULL, TRUE);
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
+    private static function reqDirDownload($config)
+    {
+        $dirPath = $config['request']->get['d'];
+        // TODO:
     }
-  }
 
-  private static function reqDirDownload($config) {
-    $dirPath = $_GET['d'];
-    // TODO:
-  }
-
-  private static function reqDirList($config) {
-    try {
-      $fileSystem = new FMDiskFileSystem($config);
-      $dirs = $fileSystem->getDirs();
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
+    private static function reqDirList($config)
+    {
+        try {
+            $fileSystem = $config['filesystem'];
+            $dirs = $fileSystem->getDirs(
+                isset($config['request']->post['hideDirs']) ? $config['request']->post['hideDirs'] : []
+            );
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
+        return new Response(null, $dirs);
     }
-    return new Response(NULL, $dirs);
-  }
 
-  private static function reqDirMove($config) {
-    $dirPath = $_POST['d'];
-    $newPath = $_POST['n'];
-    try {
-      $fileSystem = new FMDiskFileSystem($config);
-      $fileSystem->moveDir($dirPath, $newPath);
-      return new Response(NULL, TRUE);
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
+    private static function reqDirMove($config)
+    {
+        $dirPath = $config['request']->post['d'];
+        $newPath = $config['request']->post['n'];
+        try {
+            $fileSystem = $config['filesystem'];
+            $fileSystem->moveDir($dirPath, $newPath);
+            return new Response(null, true);
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
     }
-  }
 
-  private static function reqDirRename($config) {
-    $dirPath = $_POST['d'];
-    $newName = $_POST['n'];
-    try {
-      $fileSystem = new FMDiskFileSystem($config);
-      $fileSystem->renameDir($dirPath, $newName);
-      return new Response(NULL, TRUE);
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
+    private static function reqDirRename($config)
+    {
+        $dirPath = $config['request']->post['d'];
+        $newName = $config['request']->post['n'];
+        try {
+            $fileSystem = $config['filesystem'];
+            $fileSystem->renameDir($dirPath, $newName);
+            return new Response(null, true);
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
     }
-  }
 
-  private static function reqFileCopy($config) {
-    $files = $_POST['fs'];
-    $newPath = $_POST['n'];
+    private static function reqFileCopy($config)
+    {
+        $files = $config['request']->post['fs'];
+        $newPath = $config['request']->post['n'];
 
-    $filesPaths = preg_split("/\|/", $files);
+        $filesPaths = preg_split('/\|/', $files);
 
-    try {
-      $fileSystem = new FMDiskFileSystem($config);
-      $fileSystem->copyFiles($filesPaths, $newPath);
-      return new Response(NULL, TRUE);
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
+        try {
+            $fileSystem = $config['filesystem'];
+            $fileSystem->copyFiles($filesPaths, $newPath);
+            return new Response(null, true);
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
     }
-  }
 
-  private static function reqFileDelete($config) {
-    $files = $_POST['fs'];
+    private static function reqFileDelete($config)
+    {
+        $files = $config['request']->post['fs'];
 
-    $filesPaths = preg_split("/\|/", $files);
+        $filesPaths = preg_split('/\|/', $files);
 
-    try {
-      $fileSystem = new FMDiskFileSystem($config);
-      $fileSystem->deleteFiles($filesPaths);
-      return new Response(NULL, TRUE);
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
+        try {
+            $fileSystem = $config['filesystem'];
+            $fileSystem->deleteFiles($filesPaths);
+            return new Response(null, true);
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
     }
-  }
 
-  private static function reqFileList($config) {
-    $path = $_POST['d'];
+    private static function reqFileList($config)
+    {
+        $path = $config['request']->post['d'];
 
-    try {
-      $fileSystem = new FMDiskFileSystem($config);
-      $files = $fileSystem->getFiles($path);
-      return new Response(NULL, $files);
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
+        try {
+            $fileSystem = $config['filesystem'];
+            $files = $fileSystem->getFiles($path);
+            return new Response(null, $files);
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
     }
-  }
 
-  private static function reqFileMove($config) {
-    $files = $_POST['fs'];
-    $newPath = $_POST['n'];
+    private static function reqFileListPaged($config)
+    {
+        try {
+            $fileSystem = $config['filesystem'];
+            $files = $fileSystem->getFilesPaged(
+                $config['request']->post['dir'],
+                $config['request']->post['maxFiles'],
+                isset($config['request']->post['lastFile']) ? $config['request']->post['lastFile'] : NULL,
+                isset($config['request']->post['lastIndex']) ? $config['request']->post['lastIndex'] : NULL,
+                isset($config['request']->post['whiteList']) ? $config['request']->post['whiteList'] : [],
+                isset($config['request']->post['blackList']) ? $config['request']->post['blackList'] : [],
+                isset($config['request']->post['filter']) ? $config['request']->post['filter'] : "**",
+                $config['request']->post['orderBy'],
+                $config['request']->post['orderAsc'],
+                $config['request']->post['formatIds'],
+                $config['request']->post['formatSuffixes']
+            );
 
-    $filesPaths = preg_split("/\|/", $files);
-
-    try {
-      $fileSystem = new FMDiskFileSystem($config);
-      $fileSystem->moveFiles($filesPaths, $newPath);
-      return new Response(NULL, TRUE);
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
+            return new Response(null, $files);
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
     }
-  }
 
-  private static function reqFileOriginal($config) {
-    $filePath = $_GET['f'];
+    private static function reqFileMove($config)
+    {
+        $files = $config['request']->post['fs'];
+        $newPath = $config['request']->post['n'];
 
-    try {
-      $fileSystem = new FMDiskFileSystem($config);
-      list($mimeType, $f) = $fileSystem->getImageOriginal($filePath);
-      header('Content-Type:' . $mimeType);
-      fpassthru($f);
-      die;
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
+        $filesPaths = preg_split('/\|/', $files);
+
+        try {
+            $fileSystem = $config['filesystem'];
+            $fileSystem->moveFiles($filesPaths, $newPath);
+            return new Response(null, true);
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
     }
-  }
 
-  private static function reqFilePreview($config) {
-      $filePath = isset($_GET['f']) ? $_GET['f'] : $_POST['f'];
-      $width = isset($_GET['width']) ? $_GET['width'] : $_POST['width'];
-      $height = isset($_GET['height']) ? $_GET['height'] : $_POST['height'];
+    private static function reqFileOriginal($config)
+    {
+        $filePath = isset($config['request']->get['f']) ? $config['request']->get['f'] : $config['request']->post['f'];
 
-    try {
-      $fileSystem = new FMDiskFileSystem($config);
-      list($mimeType, $f) = $fileSystem->getImagePreview($filePath, $width, $height);
-      header('Content-Type:' . $mimeType);
-      fpassthru($f);
-      die;
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
+        try {
+            $fileSystem = $config['filesystem'];
+            list($mimeType, $f) = $fileSystem->getImageOriginal($filePath);
+            header('Content-Type:' . $mimeType);
+            fpassthru($f);
+            die();
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
     }
-  }
 
-  private static function reqFileResize($config) {
-    $filePath = $_POST['f'];
-    $newFileNameWithoutExt = $_POST['n'];
-    $maxWidth = $_POST['mw'];
-    $maxHeight = $_POST['mh'];
+    private static function reqFilePreview($config)
+    {
+        $filePath = isset($config['request']->get['f']) ? $config['request']->get['f'] : $config['request']->post['f'];
+        $width = isset($config['request']->get['width']) ? $config['request']->get['width'] : (isset($config['request']->post['width']) ? $config['request']->post['width'] : NULL);
+        $height = isset($config['request']->get['height']) ? $config['request']->get['height'] : (isset($config['request']->post['height']) ? $config['request']->post['height'] : NULL);
 
-    $mode = $_POST['mode'];
-
-    try {
-      $fileSystem = new FMDiskFileSystem($config);
-      $resizedFilePath = $fileSystem->resizeFile($filePath, $newFileNameWithoutExt, $maxWidth, $maxHeight, $mode);
-      return new Response(NULL, $resizedFilePath);
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
+        try {
+            $fileSystem = $config['filesystem'];
+            list($mimeType, $fullPath) = $fileSystem->getImagePreview(
+                $filePath,
+                $width,
+                $height
+            );
+            $fileSystem->passThrough($fullPath, $mimeType);
+            die(); // to prevent setting header after passing a file
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
     }
-  }
 
-  private static function reqFileRename($config) {
-    $filePath = $_POST['f'];
-    $newName = $_POST['n'];
+    private static function reqFileResize($config)
+    {
+        $filePath = $config['request']->post['f'];
+        $newFileNameWithoutExt = $config['request']->post['n'];
+        $maxWidth = $config['request']->post['mw'];
+        $maxHeight = $config['request']->post['mh'];
 
-    try {
-      $fileSystem = new FMDiskFileSystem($config);
-      $fileSystem->renameFile($filePath, $newName);
-      return new Response(NULL, TRUE);
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
+        $mode = $config['request']->post['mode'];
+
+        try {
+            $fileSystem = $config['filesystem'];
+            $resizedFilePath = $fileSystem->resizeFile(
+                $filePath,
+                $newFileNameWithoutExt,
+                $maxWidth,
+                $maxHeight,
+                $mode
+            );
+            return new Response(null, $resizedFilePath);
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
     }
-  }
 
-  private static function upload($config){
-    try {
-      $configUploader = [
-          'dirFiles' => $config['dirFiles'],
-          'dirTmp' => $config['dirTmp'],
-          'config' => isset($config['uploader'])
-              ? $config['uploader']
-              : [],
-      ];
+    private static function reqFileRename($config)
+    {
+        $filePath = $config['request']->post['f'];
+        $newName = $config['request']->post['n'];
 
-      $post = [
-        'action' => $_POST['action'],
-        'dir' => $_POST['dir'],
-        'data' => JsonCodec::s_toJson(['action' => $_POST['action'], 'dir' => $_POST['dir']])
-      ];
-      FileUploaderServer::fileUploadRequest($configUploader, $post, $_FILES);
-  } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), null);
-  }
-  }
+        try {
+            $fileSystem = $config['filesystem'];
+            $fileSystem->renameFile($filePath, $newName);
+            return new Response(null, true);
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
+    }
 
-  private static function getVersion() {
-    return new Response(NULL, ["version" => "3", "language" => "php"]);
-  }
+    private static function upload($config)
+    {
+        try {
+            $configUploader = [
+                'dirFiles' => $config['dirFiles'],
+                'dirTmp' => $config['dirTmp'],
+                'filesystem' => $config['filesystem'],
+                'config' => isset($config['uploader'])
+                    ? $config['uploader']
+                    : [],
+                'request' => $config['request'],
+            ];
 
+            $dir = isset($config['request']->post['dir']) ? $config['request']->post['dir'] : null;
+            $post = [
+                'action' => $config['request']->post['action'],
+                'dir' => $dir,
+                'data' => JsonCodec::s_toJson([
+                    'action' => $config['request']->post['action'],
+                    'dir' => $dir
+                ]),
+            ];
+            FileUploaderServer::fileUploadRequest(
+                $configUploader,
+                $post,
+                $config['request']->files
+            );
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
+    }
+
+    private static function getVersion()
+    {
+        return new Response(null, ['version' => '4', 'language' => 'php']);
+    }
 }
-
