@@ -25,6 +25,8 @@ class FMDiskFileSystem extends AFileSystem
 
     private $dirCache;
 
+    public $embedPreviews = false;
+
     function __construct($config)
     {
         $this->dirFiles = $config['dirFiles'];
@@ -534,6 +536,19 @@ class FMDiskFileSystem extends AFileSystem
             if (is_file($fileFullPath)) {
                 try {
                     $imageInfo = Utils::getImageInfo($fileFullPath);
+                    if ($this->embedPreviews) {
+                        
+                        list($previewFormat, $previewFile) = $this->getImagePreview($dirPath . '/' . $fFile, 159, 139);
+                        $previewData = '';
+                        $previewData = file_get_contents($previewFile);
+                        // while (!feof($previewFile)) {
+                            // dump($previewFile);
+                        //     $previewData .= fread($previewFile, 8192);
+                        // }
+                        // fclose($previewFile);
+                        $preview = "data:" . $previewFormat . ";base64," . base64_encode($previewData);
+                    }
+
                 } catch (Exception $e) {
                     $imageInfo = new ImageInfo();
                     $imageInfo->width = null;
@@ -546,6 +561,10 @@ class FMDiskFileSystem extends AFileSystem
                     filemtime($fileFullPath),
                     $imageInfo
                 );
+                if ($preview != null){
+                    $file->preview = $preview;
+                    }
+    
 
                 $files[] = $file;
             }
