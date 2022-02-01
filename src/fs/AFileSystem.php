@@ -19,7 +19,7 @@ abstract class AFileSystem {
     abstract function renameFile($filePath, $newName);
     abstract function renameDir($dirPath, $newName);
     abstract function getFiles($dirPath); // with "/root_dir_name" in the start
-    abstract function deleteFiles($filesPaths);
+    abstract function deleteFiles($filesPaths, $formatSuffixes);
     abstract function copyFiles($filesPaths, $newPath);
     abstract function moveFiles($filesPaths, $newPath);
     abstract function moveDir($dirPath, $newPath);

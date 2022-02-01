@@ -114,6 +114,9 @@ class FlmngrServer
                 case 'fileListPaged':
                     $resp = FlmngrServer::reqFileListPaged($config);
                     break;
+                case 'fileListSpecified':
+                    $resp = FlmngrServer::reqFileListSpecified($config);
+                    break;
                 case 'fileDelete':
                     $resp = FlmngrServer::reqFileDelete($config);
                     break;
@@ -321,12 +324,13 @@ class FlmngrServer
     private static function reqFileDelete($config)
     {
         $files = $config['request']->post['fs'];
+        $formatSuffixes = $config['request']->post['formatSuffixes'];
 
         $filesPaths = preg_split('/\|/', $files);
 
         try {
             $fileSystem = $config['filesystem'];
-            $fileSystem->deleteFiles($filesPaths);
+            $fileSystem->deleteFiles($filesPaths, $formatSuffixes);
             return new Response(null, true);
         } catch (MessageException $e) {
             return new Response($e->getFailMessage(), null);
@@ -340,6 +344,19 @@ class FlmngrServer
         try {
             $fileSystem = $config['filesystem'];
             $files = $fileSystem->getFiles($path);
+            return new Response(null, $files);
+        } catch (MessageException $e) {
+            return new Response($e->getFailMessage(), null);
+        }
+    }
+
+    private static function reqFileListSpecified($config)
+    {
+        try {
+            $fileSystem = $config['filesystem'];
+            $files = $fileSystem->getFilesSpecified(
+                $config['request']->post['files']
+            );
             return new Response(null, $files);
         } catch (MessageException $e) {
             return new Response($e->getFailMessage(), null);

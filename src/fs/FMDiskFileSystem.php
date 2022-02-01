@@ -236,6 +236,43 @@ class FMDiskFileSystem extends AFileSystem
         return $now;
     }
 
+    // $files are like: "file.jpg" or "dir/file.png" - they start not with "/root_dir/"
+    // This is because we need to validate files before dir tree is loaded on a client
+    public function getFilesSpecified(
+        $files
+    ) {
+        $result = [];
+        for ($i = 0; $i < count($files); $i++) {
+
+            $file = '/' . $files[$i];
+
+            if (strpos($file, '..') !== false) {
+                throw new MessageException(
+                    FMMessage::createMessage(
+                        FMMessage::FM_DIR_NAME_CONTAINS_INVALID_SYMBOLS
+                    )
+                );
+            }
+
+            $filePath = "/" . $this->getRootDirName() . $file;
+
+            // Remove end slash
+            if (is_file($this->getAbsolutePath($filePath))) {
+
+                $index = strrpos($filePath, "/");
+                $dirPath = substr($filePath, 0, $index);
+                $fileName = substr($filePath, $index + 1);
+
+                $result[] = array(
+                    "dir" => substr($dirPath, strlen($this->getRootDirName() + 1)),
+                    "file" => $this->getFileStructure($dirPath, $fileName)
+                );
+            }
+
+        }
+        return $result;
+    }
+
     public function getFilesPaged(
         $dirPath,
         $maxFiles,
@@ -531,18 +568,38 @@ class FMDiskFileSystem extends AFileSystem
         return substr($this->dirFiles, $i + 1);
     }
 
-    function deleteFiles($filesPaths)
+    // "suffixes" is an optional parameter (does not supported by Flmngr UI v1)
+    function deleteFiles($filesPaths, $formatSuffixes)
     {
         for ($i = 0; $i < count($filesPaths); $i++) {
             $fullPath = $this->getAbsolutePath($filesPaths[$i]);
-            $res = is_dir($fullPath) ? rmdir($fullPath) : unlink($fullPath);
-            if ($res === false) {
-                throw new MessageException(
-                    Message::createMessage(
-                        Message::UNABLE_TO_DELETE_FILE,
-                        $filesPaths[$i]
-                    )
-                );
+            $fullPaths = [$fullPath];
+
+            $index = strrpos($fullPath,  '.');
+            if ($index > -1) {
+                $fullPathPrefix = substr($fullPath, 0, $index);
+            } else {
+                $fullPathPrefix = $fullPath;
+            }
+            if (isset($formatSuffixes) && is_array($formatSuffixes)) {
+                for ($j=0; $j<count($formatSuffixes); $j++) {
+                    $fullPaths[] = $fullPathPrefix . $formatSuffixes[$j] . '.png';
+                }
+            }
+
+            for ($j=0; $j<count($fullPaths); $j++) {
+                // Previews can not exist, but original file must present
+                if (is_file($fullPath) || $j === 0) {
+                    $res = unlink($fullPaths[$j]);
+                    if ($res === false) {
+                        throw new MessageException(
+                            Message::createMessage(
+                                Message::UNABLE_TO_DELETE_FILE,
+                                $fullPaths[$j]
+                            )
+                        );
+                    }
+                }
             }
         }
     }
