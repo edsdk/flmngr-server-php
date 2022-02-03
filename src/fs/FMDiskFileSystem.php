@@ -532,6 +532,10 @@ class FMDiskFileSystem extends AFileSystem
         $files = [];
         for ($i = 0; $i < count($fFiles); $i++) {
             $fFile = $fFiles[$i];
+
+            if (preg_match('/-(preview|medium|original)\\.[^.]+$/', $fFile) === 1)
+                continue;
+
             $fileFullPath = $fullPath . '/' . $fFile;
             if (is_file($fileFullPath)) {
                 try {
@@ -561,9 +565,9 @@ class FMDiskFileSystem extends AFileSystem
                     filemtime($fileFullPath),
                     $imageInfo
                 );
-                if ($preview != null){
+                if ($preview != null) {
                     $file->preview = $preview;
-                    }
+                }
     
 
                 $files[] = $file;
