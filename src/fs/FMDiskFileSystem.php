@@ -538,18 +538,12 @@ class FMDiskFileSystem extends AFileSystem
 
             $fileFullPath = $fullPath . '/' . $fFile;
             if (is_file($fileFullPath)) {
+                $preview = null;
                 try {
                     $imageInfo = Utils::getImageInfo($fileFullPath);
-                    if ($this->embedPreviews) {
-                        
+                    if ($this->embedPreviews === TRUE) {
                         list($previewFormat, $previewFile) = $this->getImagePreview($dirPath . '/' . $fFile, 159, 139);
-                        $previewData = '';
                         $previewData = file_get_contents($previewFile);
-                        // while (!feof($previewFile)) {
-                            // dump($previewFile);
-                        //     $previewData .= fread($previewFile, 8192);
-                        // }
-                        // fclose($previewFile);
                         $preview = "data:" . $previewFormat . ";base64," . base64_encode($previewData);
                     }
 

@@ -189,8 +189,9 @@ class Utils
 
     public static function getImageInfo($file)
     {
-        $size = getimagesize($file);
+        $size = @getimagesize($file);
         if ($size === false) {
+            //error_log("Unable to read image info of " . $file);
             throw new MessageException(
                 Message::createMessage(Message::IMAGE_PROCESS_ERROR)
             );
