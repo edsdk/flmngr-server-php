@@ -962,24 +962,21 @@ class FMDiskFileSystem extends AFileSystem
         // TODO: Implement getDirZipArchive() method.
     }
 
-    function getCachedImageInfo($filePath) {
-        $cachedFile = new CachedFile(
+    function getCachedFile($filePath) {
+        return new CachedFile(
             $this->getRelativePath($filePath),
             $this->getAbsolutePath($filePath),
             $this->dirFiles,
             $this->dirCache
         );
-        return $cachedFile->getInfo();
+    }
+
+    function getCachedImageInfo($filePath) {
+        return $this->getCachedFile($filePath)->getInfo();
     }
 
     function getImagePreview($filePath, $width, $height)
     {
-        $cachedFile = new CachedFile(
-            $this->getRelativePath($filePath),
-            $this->getAbsolutePath($filePath),
-            $this->dirFiles,
-            $this->dirCache
-        );
-        return $cachedFile->getPreview($width, $height);
+        return $this->getCachedFile($filePath)->getPreview($width, $height);
     }
 }

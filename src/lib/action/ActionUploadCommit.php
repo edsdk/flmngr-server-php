@@ -192,6 +192,15 @@ class ActionUploadCommit extends AActionUploadId
             $fileCommited = $fileToCommit->commit($req->dir, $req->mode);
             $filesCommited[] = $fileCommited;
 
+            $dirRoot = Utils::removeTrailingSlash($this->m_config->getBaseDir());
+            $index = strrpos($dirRoot, '/');
+            if ($index !== FALSE) {
+                $dirRoot = substr($dirRoot, $index + 1);
+            }
+
+            $cachedFile = $this->m_config->getFS()->getCachedFile("/" . $dirRoot . "/" . $fileCommited->getPath());
+            $cachedFile->delete();
+
             if ($req->imageFormats != NULL) {
 
                 $path = $fileCommited->getPath();
