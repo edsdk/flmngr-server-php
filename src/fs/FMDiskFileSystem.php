@@ -604,6 +604,9 @@ class FMDiskFileSystem extends AFileSystem
                 }
             }
 
+            $cachedFile = $this->getCachedFile($filesPaths[0]);
+            $cachedFile->delete();
+
             for ($j=0; $j<count($fullPaths); $j++) {
                 // Previews can not exist, but original file must present
                 if (is_file($fullPath) || $j === 0) {
