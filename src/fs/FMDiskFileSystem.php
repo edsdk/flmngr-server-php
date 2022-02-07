@@ -600,7 +600,7 @@ class FMDiskFileSystem extends AFileSystem
             }
             if (isset($formatSuffixes) && is_array($formatSuffixes)) {
                 for ($j=0; $j<count($formatSuffixes); $j++) {
-                    $exts = ["png", "jpg", "jpeg"];
+                    $exts = ["png", "jpg", "jpeg", "webp"];
                     for ($k=0; $k<count($exts); $k++)
                         $fullPaths[] = $fullPathPrefix . $formatSuffixes[$j] . '.' . $exts[$k];
                 }
