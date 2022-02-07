@@ -62,8 +62,8 @@ class CachedFile {
 
     // Clears cache for this file
     function delete() {
-        unlink($this->cacheFileJsonAbsolute);
-        unlink($this->cacheFilePreviewAbsolute);
+        @unlink($this->cacheFileJsonAbsolute);
+        @unlink($this->cacheFilePreviewAbsolute);
     }
 
     function getInfo()

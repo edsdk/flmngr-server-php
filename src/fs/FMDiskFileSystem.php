@@ -600,7 +600,9 @@ class FMDiskFileSystem extends AFileSystem
             }
             if (isset($formatSuffixes) && is_array($formatSuffixes)) {
                 for ($j=0; $j<count($formatSuffixes); $j++) {
-                    $fullPaths[] = $fullPathPrefix . $formatSuffixes[$j] . '.png';
+                    $exts = ["png", "jpg", "jpeg"];
+                    for ($k=0; $k<count($exts); $k++)
+                        $fullPaths[] = $fullPathPrefix . $formatSuffixes[$j] . '.' . $exts[$k];
                 }
             }
 
@@ -609,7 +611,7 @@ class FMDiskFileSystem extends AFileSystem
 
             for ($j=0; $j<count($fullPaths); $j++) {
                 // Previews can not exist, but original file must present
-                if (is_file($fullPath) || $j === 0) {
+                if (is_file($fullPaths[$j]) || $j === 0) {
                     $res = unlink($fullPaths[$j]);
                     if ($res === false) {
                         throw new MessageException(
