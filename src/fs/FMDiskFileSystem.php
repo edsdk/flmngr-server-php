@@ -30,7 +30,12 @@ class FMDiskFileSystem extends AFileSystem
     function __construct($config)
     {
         $this->dirFiles = $config['dirFiles'];
+        if (substr($this->dirFiles, -1) == '/')
+            $this->dirFiles = substr($this->dirFiles, 0, -1);
+
         $this->dirCache = $config['dirCache'];
+        if (substr($this->dirCache, -1) == '/')
+            $this->dirCache = substr($this->dirCache, 0, -1);
     }
 
     function getDirs($hideDirs)
