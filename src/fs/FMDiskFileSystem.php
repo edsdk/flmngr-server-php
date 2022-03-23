@@ -38,6 +38,8 @@ class FMDiskFileSystem extends AFileSystem
             $this->dirCache = substr($this->dirCache, 0, -1);
     }
 
+    const MAX_DEPTH = 20;
+
     function getDirs($hideDirs)
     {
         $dirs = [];
@@ -50,11 +52,11 @@ class FMDiskFileSystem extends AFileSystem
 
         $hideDirs[] = '.cache';
 
-        $this->getDirs__fill($dirs, $fDir, $hideDirs, '');
+        $this->getDirs__fill($dirs, $fDir, $hideDirs, '', 0);
         return $dirs;
     }
 
-    private function getDirs__fill(&$dirs, $fDir, $hideDirs, $path)
+    private function getDirs__fill(&$dirs, $fDir, $hideDirs, $path, $currDepth)
     {
         $files = scandir($fDir);
 
@@ -100,12 +102,13 @@ class FMDiskFileSystem extends AFileSystem
                 for ($j = 0; $j < count($hideDirs) && !$isHide; $j ++)
                     $isHide = $isHide || fnmatch($hideDirs[$j], $file);
 
-                if (is_dir($fDir . '/' . $file) && !$isHide) {
+                if (is_dir($fDir . '/' . $file) && !$isHide && $currDepth < self::MAX_DEPTH) {
                     $this->getDirs__fill(
                         $dirs,
                         $fDir . '/' . $file,
                         $hideDirs,
-                        $path . (strlen($path) > 0 ? '/' : '') . $dirName
+                        $path . (strlen($path) > 0 ? '/' : '') . $dirName,
+                        $currDepth + 1
                     );
                 }
             }
