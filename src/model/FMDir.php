@@ -18,12 +18,12 @@ class FMDir
     public $d;
     public $p; // property exists in PHP version only, for JSON generation
 
-    function __construct($name, $path, $filesCount, $dirsCount)
+    function __construct($name, $path)
     {
         $this->path = $path;
         $this->name = $name;
-        $this->f = $filesCount;
-        $this->d = $dirsCount;
+        $this->f = 0; // legacy
+        $this->d = 0; // legacy
 
         $this->p =
             (strlen($this->path) > 0 ? '/' . $this->path : '') .

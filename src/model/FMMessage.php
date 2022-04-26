@@ -22,7 +22,7 @@ class FMMessage extends Message
     const FM_ROOT_DIR_DOES_NOT_EXIST = 10007; // Root directory does not exists
     const FM_UNABLE_TO_LIST_CHILDREN_IN_DIRECTORY = 10008; // Unable to list children in the directory
     const FM_UNABLE_TO_DELETE_DIRECTORY = 10009; // Unable to delete the directory
-    const FM_UNABLE_TO_CREATE_DIRECTORY = 10010; // Unable to create a directory
+    const FM_UNABLE_TO_CREATE_DIRECTORY = 10010; // Unable to create a directory: %1
     const FM_UNABLE_TO_RENAME = 10011; // Unable to rename
     const FM_DIR_CANNOT_BE_READ = 10012; // Directory can not be read
     const FM_ERROR_ON_COPYING_FILES = 10013; // Error on copying files

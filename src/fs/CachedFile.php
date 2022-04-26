@@ -1,12 +1,5 @@
 <?php
 
-/**
- * Flmngr Server package
- * Developer: N1ED
- * Website: https://n1ed.com/
- * License: GNU General Public License Version 3 or later
- **/
-
 namespace EdSDK\FlmngrServer\fs;
 
 use EdSDK\FlmngrServer\lib\action\resp\Message;
@@ -15,178 +8,129 @@ use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\MessageException;
 use EdSDK\FlmngrServer\model\FMMessage;
 
-class CachedFile {
+class CachedFile
+{
 
     private $fileRelative;
-    private $fileAbsolute;
-    private $dirFiles;
-    private $dirCache;
 
-    private $cacheFileAbsolute; // $dirCache/path/to/file.jpg (.json|.png will be added later)
-    private $cacheFileJsonAbsolute;
-    private $cacheFilePreviewAbsolute;
+    private $driverFiles;
+    private $driverCache;
+
+    private $cacheFileRelative; // path/to/file.jpg (.json|.png will be added later)
+    private $cacheFileJsonRelative;
+    private $cacheFilePreviewRelative;
 
     function __construct(
         $fileRelative, // Example: /path/to/file.jpg
-        $fileAbsolute, // Example: $dirFiles/path/to/file.jpg
-        $dirFiles,
-        $dirCache
-    ) {
+        $driverFiles,
+        $driverCache,
+        $isCacheInFiles
+    )
+    {
         $this->fileRelative = $fileRelative;
-        $this->fileAbsolute = $fileAbsolute;
-        $this->dirFiles = $dirFiles;
-        $this->dirCache = $dirCache;
+        $this->driverFiles = $driverFiles;
+        $this->driverCache = $driverCache;
 
-        $this->cacheFileAbsolute = Utils::normalizeNoEndSeparator($this->dirCache) . $fileRelative;
-        if ($dirCache === $dirFiles) {
-            $i = strrpos($this->cacheFileAbsolute, '/');
-            $this->cacheFileAbsolute = substr($this->cacheFileAbsolute, 0, $i + 1) .
-                '.cache/' . substr($this->cacheFileAbsolute, $i + 1);
+        $this->cacheFileRelative = $fileRelative;
+
+        if ($isCacheInFiles) {
+            $i = strrpos($this->cacheFileRelative, '/');
+            $this->cacheFileRelative = substr($this->cacheFileRelative, 0, $i + 1) .
+                '.cache/' . substr($this->cacheFileRelative, $i + 1);
         }
 
-        $this->cacheFileJsonAbsolute = $this->cacheFileAbsolute . '.json';
-        $this->cacheFilePreviewAbsolute = $this->cacheFileAbsolute . '.png';
+        $this->cacheFileJsonRelative = $this->cacheFileRelative . '.json';
+        $this->cacheFilePreviewRelative = $this->cacheFileRelative . '.png';
 
-        clearstatcache(TRUE, $this->dirCache);
-        if (!file_exists($this->dirCache)) {
-            if (!mkdir($this->dirCache, 0777, TRUE)) {
-                error_log("Unable to create cache directory: " . $this->dirCache);
-                throw new MessageException(
-                    FMMessage::createMessage(
-                        FMMessage::FM_UNABLE_TO_CREATE_DIRECTORY
-                    )
-                );
-            }
-        }
+        $this->driverCache->makeRootDir();
     }
 
     // Clears cache for this file
-    function delete() {
-        @unlink($this->cacheFileJsonAbsolute);
-        @unlink($this->cacheFilePreviewAbsolute);
+    function delete()
+    {
+        $this->driverCache->delete($this->cacheFileJsonRelative);
+        $this->driverCache->delete($this->cacheFilePreviewRelative);
     }
 
     function getInfo()
     {
-        if (!file_exists($this->cacheFileJsonAbsolute)) {
+        if (!$this->driverCache->exists($this->cacheFileJsonRelative)) {
 
             try {
 
-                $size = @getimagesize($this->fileAbsolute);
+                // We do not calculate BlurHash/width/height here due to this is a long operation
+                // BlurHash/width/height will be calculated and JSON file will be updated on the first getCachedImagePreview() call
 
-                if ($size == FALSE) {
-                    error_log("Unable to get size in file " . $this->cacheFileJsonAbsolute);
-                    return NULL;
-                }
-
-                $width = $size[0];
-                $height = $size[1];
-
-                // We do not calculate BlurHash here due to this is a long operation
-                // BlurHash will be calculated and JSON file will be updated on the first getImagePreview() call
-
-                clearstatcache(TRUE, $this->fileAbsolute);
                 $info = array(
-                    'width' => $width,
-                    'height' => $height,
-                    'mtime' => filemtime($this->fileAbsolute),
-                    'size' => filesize($this->fileAbsolute)
+                    'mtime' => $this->driverFiles->lastModified($this->fileRelative),
+                    'size' => $this->driverFiles->size($this->fileRelative)
                 );
                 $this->writeInfo($info);
 
             } catch (Exception $e) {
-                error_log("Exception while getting image size of " . $this->fileAbsolute);
+                error_log("Exception while getting image size of " . $this->fileRelative);
                 error_log($e);
             }
         }
 
-        $content = file_get_contents($this->cacheFileJsonAbsolute);
-        if ($content === FALSE) {
-            error_log("Unable to read file " . $this->cacheFileJsonAbsolute);
-            return NULL;
-        }
-
+        $content = $this->driverCache->get($this->cacheFileJsonRelative);
         $json = json_decode($content, true);
         if ($json === null) {
-            error_log("Unable to parse JSON from file " . $this->cacheFileJsonAbsolute);
+            error_log("Unable to parse JSON from file " . $this->cacheFileJsonRelative);
             return NULL;
         }
 
         return $json;
     }
 
-    private function writeInfo($info) {
-        $dirname = dirname($this->cacheFileJsonAbsolute);
-        if (!is_dir($dirname)) {
-            mkdir($dirname, 0777, TRUE);
+    private function writeInfo($info)
+    {
+        $dirname = dirname($this->cacheFileJsonRelative);
+        if (!$this->driverCache->exists($dirname)) {
+            $this->driverCache->makeDirectory($dirname);
         }
-        $f = fopen($this->cacheFileJsonAbsolute, 'w');
-        fwrite($f, json_encode($info));
-        fclose($f);
+        $this->driverCache->put($this->cacheFileJsonRelative, json_encode($info));
     }
 
-    function getPreview($width, $height)
+    function getPreview($width, $height, $contents)
     {
-        $cacheFilePreviewAbsolute = $this->cacheFileAbsolute . '.png';
+        $cacheFilePreviewRelative = $this->cacheFileRelative . '.png';
 
-        if (file_exists($cacheFilePreviewAbsolute)) {
+        if ($this->driverCache->exists($cacheFilePreviewRelative)) {
+
             $info = $this->getInfo();
-            clearstatcache(TRUE, $this->fileAbsolute);
             if (
-                $info == NULL ||
-                $info['mtime'] !== filemtime($this->fileAbsolute) ||
-                $info['size'] !== filesize($this->fileAbsolute)
+                $info == NULL
+
+                // Amazon S3 is very slow here - 2 additional requests
+                // ||
+                //$info['mtime'] !== $this->fs->fsFileModifyTime(true, $this->fileAbsolute) ||
+                //$info['size'] !== $this->fs->fsFileSize(true, $this->fileAbsolute)
             ) {
                 // Delete preview if it was changed, will be recreated below
-                unlink($cacheFilePreviewAbsolute);
+                $this->driverCache->delete($cacheFilePreviewRelative);
             }
         }
 
         $resizedImage = null;
-        if (!file_exists($cacheFilePreviewAbsolute)) {
-            $image = null;
-            switch (Utils::getMimeType($this->fileAbsolute)) {
-                case 'image/gif':
-                    $image = @imagecreatefromgif($this->fileAbsolute);
-                    break;
-                case 'image/jpeg':
-                    $image = @imagecreatefromjpeg($this->fileAbsolute);
-                    break;
-                case 'image/png':
-                    $image = @imagecreatefrompng($this->fileAbsolute);
-                    break;
-                case 'image/bmp':
-                    $image = @imagecreatefromwbmp($this->fileAbsolute);
-                    break;
-                case 'image/webp':
-                    // If you get problems with WEBP preview creation, please consider updating GD > 2.2.4
-                    // https://stackoverflow.com/questions/59621626/converting-webp-to-jpeg-in-with-php-gd-library
-                    $image = @imagecreatefromwebp($this->fileAbsolute);
-                    break;
-                case 'image/svg+xml':
-                    return ['image/svg+xml', fopen($this->fileAbsolute, 'rb')];
-            }
-
-            // Somewhy it can not read ONLY SOME JPEG files, we've caught it on Windows + IIS + PHP
-            // Solution from here: https://github.com/libgd/libgd/issues/206
-            if (!$image) {
-                $image = imagecreatefromstring(file_get_contents($this->fileAbsolute));
-            }
-            // end of fix
-
+        if (!$this->driverCache->exists($cacheFilePreviewRelative)) {
+            if ($contents === null)
+                $contents = $this->driverFiles->get($this->fileRelative);
+            $image = imagecreatefromstring($contents);
             if (!$image) {
                 throw new MessageException(
                     Message::createMessage(Message::IMAGE_PROCESS_ERROR)
                 );
             }
-            imagesavealpha($image, true);
 
-            // TODO:
-            // throw new MessageException(FMMessage.createMessage(FMMessage.FM_UNABLE_TO_CREATE_PREVIEW));
+            $xx = imagesx($image);
+            $yy = imagesy($image);
+            if ($width === FALSE || $height === FALSE) {
+                throw new MessageException(
+                    Message::createMessage(Message::IMAGE_PROCESS_ERROR)
+                );
+            }
 
-            $imageInfo = Utils::getImageInfo($this->fileAbsolute);
-            $xx = $imageInfo->width;
-            $yy = $imageInfo->height;
             $ratio_original = $xx / $yy; // ratio original
 
             if ($width == NULL) {
@@ -216,7 +160,7 @@ class CachedFile {
             $rectSize = 20;
             for ($x = 0; $x <= floor($width / $rectSize); $x++)
                 for ($y = 0; $y <= floor($height / $rectSize); $y++)
-                    imagefilledrectangle($resizedImage, $x*$rectSize, $y*$rectSize, $width, $height, ($x + $y) % 2 == 0 ? $colorGray1 : $colorGray2);
+                    imagefilledrectangle($resizedImage, $x * $rectSize, $y * $rectSize, $width, $height, ($x + $y) % 2 == 0 ? $colorGray1 : $colorGray2);
 
 
             imagecopyresampled(
@@ -232,25 +176,19 @@ class CachedFile {
                 $yo
             );
 
-            $i = strrpos($cacheFilePreviewAbsolute, '/');
-            $cacheDirPreviewAbsolute = substr($cacheFilePreviewAbsolute, 0, $i);
-            clearstatcache(TRUE, $cacheDirPreviewAbsolute);
-            if (!file_exists($cacheDirPreviewAbsolute)) {
-                if (!mkdir($cacheDirPreviewAbsolute, 0777, TRUE)) {
-                    error_log("Unable to create cache directory: " . $this->dirCache);
-                    throw new MessageException(
-                        FMMessage::createMessage(
-                            FMMessage::FM_UNABLE_TO_CREATE_DIRECTORY
-                        )
-                    );
-                }
-            }
+            $i = strrpos($cacheFilePreviewRelative, '/');
+            $cacheDirPreviewRelative = substr($cacheFilePreviewRelative, 0, $i);
+            // clearstatcache(TRUE, $cacheDirPreviewAbsolute);
 
-            if (imagepng($resizedImage, $cacheFilePreviewAbsolute) === false) {
+            $this->driverCache->makeRootDir();
+
+            $imageContents = Utils::writeImageContents(Utils::getExt($cacheFilePreviewRelative), $resizedImage, 80);
+
+            if ($this->driverCache->put($cacheFilePreviewRelative, $imageContents) === FALSE) {
                 throw new MessageException(
                     FMMessage::createMessage(
                         FMMessage::FM_UNABLE_TO_WRITE_PREVIEW_IN_CACHE_DIR,
-                        $cacheFilePreviewAbsolute
+                        $cacheFilePreviewRelative
                     )
                 );
             }
@@ -260,13 +198,14 @@ class CachedFile {
         if (!isset($cachedImageInfo["blurHash"])) {
 
             if ($resizedImage == null)
-                $resizedImage = @imagecreatefrompng($cacheFilePreviewAbsolute);
-            $previewImageInfo = Utils::getImageInfo($cacheFilePreviewAbsolute);
+                $resizedImage = @imagecreatefromstring($this->driverCache->get($cacheFilePreviewRelative));
 
             $pixels = [];
-            for ($y = 0; $y < $previewImageInfo->height; $y++) {
+            $xx = imagesx($resizedImage);
+            $yy = imagesy($resizedImage);
+            for ($y = 0; $y < $yy; $y++) {
                 $row = [];
-                for ($x = 0; $x < $previewImageInfo->width; $x++) {
+                for ($x = 0; $x < $xx; $x++) {
                     $index = imagecolorat($resizedImage, $x, $y);
                     $colors = imagecolorsforindex($resizedImage, $index);
                     $row[] = [$colors['red'], $colors['green'], $colors['blue']];
@@ -280,12 +219,13 @@ class CachedFile {
             $cachedImageInfo = $this->getInfo();
             if (count($pixels) > 0) {
                 $cachedImageInfo["blurHash"] = Blurhash::encode($pixels, $components_x, $components_y);
+                $cachedImageInfo["width"] = $xx;
+                $cachedImageInfo["height"] = $yy;
                 $this->writeInfo($cachedImageInfo);
             }
         }
 
-        return ['image/png', $cacheFilePreviewAbsolute];
+        return ['image/png', $cacheFilePreviewRelative];
     }
-
 
 }

@@ -53,6 +53,7 @@ class ActionUploadAddFile extends AActionUploadId
                 $req->m_fileName,
                 $req->m_fileName
             );
+            
             $ext = strtolower($file->getExt());
             $allowedExts = $this->m_config->getAllowedExtensions();
             $isAllowedExt = count($allowedExts) == 0;
@@ -75,7 +76,9 @@ class ActionUploadAddFile extends AActionUploadId
                     )
                 );
             }
+            
             $file->uploadAndCommit($req->m_file);
+            
         } else {
             if (filter_var($req->url, FILTER_VALIDATE_URL) === false) {
                 throw new MessageException(

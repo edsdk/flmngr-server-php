@@ -18,12 +18,12 @@ class FMFile {
     public $w;
     public $h;
 
-    function __construct($path, $name, $size, $timeModification, $imageInfo) {
+    function __construct($path, $name, $cachedImageInfo) {
         $this->p = "/" . $path . "/" . $name;
-        $this->s = $size;
-        $this->t = $timeModification;
-        $this->w = $imageInfo->width == 0 ? null : $imageInfo->width;
-        $this->h = $imageInfo->height == 0 ? null : $imageInfo->height;
+        $this->s = $cachedImageInfo['size'];
+        $this->t = $cachedImageInfo['mtime'];
+        $this->w = $cachedImageInfo['width'] == 0 ? null : $cachedImageInfo['width'];
+        $this->h = $cachedImageInfo['height'] == 0 ? null : $cachedImageInfo['height'];
     }
 
 }

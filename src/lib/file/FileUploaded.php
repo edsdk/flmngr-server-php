@@ -126,18 +126,28 @@ class FileUploaded extends AFile
     public function uploadAndCommit($file)
     {
         $initName = $this->getName();
+        
         $this->setFreeFileName();
-
-        if (!move_uploaded_file($file['tmp_name'], $this->getFullPath())) {
+        
+        if (
+            !$this->getFS()->fsMoveFileOrDir(
+                null,
+                $file['tmp_name'],
+                false,
+                $this->getFullPath()
+            )
+        ) {
             throw new MessageException(
                 Message::createMessage(Message::WRITING_FILE_ERROR, $initName)
             );
         }
+        
     }
 
     public function rehost($url)
     {
         $dUrl = URLDownloader::download(
+            $this->getFS(),
             $url,
             $this->getBaseDir() . '/' . $this->getDir()
         );

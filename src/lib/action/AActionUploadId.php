@@ -23,7 +23,7 @@ abstract class AActionUploadId extends AAction
         }
 
         $dir = $this->m_config->getTmpDir() . '/' . $req->uploadId;
-        if (!file_exists($dir) || !is_dir($dir)) {
+        if (!$this->getFS()->fsFileExists(false, $dir) || !$this->getFS()->fsIsDir(false, $dir)) {
             throw new MessageException(
                 Message::createMessage(Message::UPLOAD_ID_INCORRECT)
             );

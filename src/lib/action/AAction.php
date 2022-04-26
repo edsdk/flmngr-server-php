@@ -20,6 +20,10 @@ abstract class AAction
 
     abstract public function getName();
     abstract public function run($req);
+    function getFS()
+    {
+        return $this->m_config->m_conf['filesystem'];
+    }
 
     protected function validateBoolean($b, $defaultValue)
     {

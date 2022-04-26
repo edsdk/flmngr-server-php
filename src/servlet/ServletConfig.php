@@ -11,12 +11,11 @@ namespace EdSDK\FlmngrServer\servlet;
 
 use EdSDK\FlmngrServer\lib\config\IConfig;
 use EdSDK\FlmngrServer\lib\file\Utils;
-use EdSDK\FlmngrServer\fs\AFileSystem;
 use Exception;
 
 class ServletConfig implements IConfig
 {
-    protected $m_conf;
+    public $m_conf;
     protected $m_testConf = [];
 
     public function __construct($m_conf)
@@ -87,8 +86,8 @@ class ServletConfig implements IConfig
         if ($dir == null) {
             throw new Exception('dirFiles not set');
         }
-        if (!file_exists($dir)) {
-            if (!mkdir($dir, 0777, TRUE)) {
+        if (!$this->getFS()->fsFileExists(true, $dir)) {
+            if (!$this->getFS()->fsMkDir(true, $dir, 0777, TRUE)) {
                 throw new Exception(
                     "Unable to create files directory '" . $dir . "''"
                 );
@@ -105,8 +104,8 @@ class ServletConfig implements IConfig
             true
         );
 
-        if (!file_exists($dir)) {
-            if (!mkdir($dir, 0777, TRUE)) {
+        if (!$this->getFS()->fsFileExists(false, $dir)) {
+            if (!$this->getFS()->fsMkDir(false, $dir, 0777, TRUE)) {
                 throw new Exception(
                     "Unable to create temporary files directory '" . $dir . "''"
                 );

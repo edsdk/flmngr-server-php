@@ -11,10 +11,6 @@
         {
             "name": "EdSDK / N1ED / Flmngr team",
             "email": "support@n1ed.zendesk.com"
-        },
-        {
-            "name": "Ilia Kandaurov",
-            "email": "ilia@kandaurov.su"
         }
     ],
     "autoload": {

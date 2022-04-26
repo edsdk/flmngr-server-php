@@ -23,11 +23,18 @@ abstract class AFile
 
     protected $m_commonErrors = [];
 
+    protected $isDiskFile = false; // FileCommited will have 'true' here
+
     public function __construct($config, $dir, $name)
     {
         $this->m_config = $config;
         $this->m_dir = $dir;
         $this->m_name = $name;
+    }
+
+    function getFS()
+    {
+        return $this->m_config->m_conf['filesystem'];
     }
 
     public function getData()
@@ -77,10 +84,12 @@ abstract class AFile
     public function getSize()
     {
         $path = $this->getFullPath();
-        if (file_exists($path)) {
-            return filesize($path);
+        if ($this->getFS()->fsFileExists($this->isDiskFile, $path)) {
+            if ($this->isDiskFile)
+                return $this->getFS()->getCachedImageInfo($path)['size'];
+            else
+                return $this->getFS()->fsFileSize(false, $path);
         }
-        return 0;
     }
 
     public function getErrors()
@@ -164,12 +173,12 @@ abstract class AFile
 
     public function exists()
     {
-        return file_exists($this->getFullPath());
+        return $this->getFS()->fsFileExists($this->isDiskFile, $this->getFullPath());
     }
 
     public function delete()
     {
-        if (!unlink($this->getFullPath())) {
+        if (!$this->getFS()->fsUnLink($this->isDiskFile, $this->getFullPath())) {
             throw new MessageException(
                 Message::createMessage(
                     Message::UNABLE_TO_DELETE_FILE,
@@ -186,27 +195,25 @@ abstract class AFile
 
     public function getImageWidth()
     {
-        if (
-            $size = $this->m_config->getFS()->getImageSize($this->getFullPath())
-        ) {
-            return $size === null ? -1 : $size[0];
+        if ($this->isDiskFile) {
+            $cachedFile = $this->getFS()->getCachedImageInfo($this->getFullPath());
+            $width = isset($cachedFile['width']) ? $cachedFile['width'] : null;
+            return is_numeric($width) ? $width : -1;
         } else {
-            throw new MessageException(
-                Message::createMessage(Message::IMAGE_PROCESS_ERROR)
-            );
+            $img = imagecreatefromstring($this->getFS()->fsFileGetContents($this->isDiskFile, $this->getFullPath()));
+            return imagesx($img);
         }
     }
 
     public function getImageHeight()
     {
-        if (
-            $size = $this->m_config->getFS()->getImageSize($this->getFullPath())
-        ) {
-            return $size === null ? -1 : $size[1];
+        if ($this->isDiskFile) {
+            $cachedFile = $this->getFS()->getCachedImageInfo($this->getFullPath());
+            $height = isset($cachedFile['height']) ? $cachedFile['height'] : null;
+            return is_numeric($height) ? $height : -1;
         } else {
-            throw new MessageException(
-                Message::createMessage(Message::IMAGE_PROCESS_ERROR)
-            );
+            $img = imagecreatefromstring($this->getFS()->fsFileGetContents($this->isDiskFile, $this->getFullPath()));
+            return imagesy($img);
         }
     }
 
@@ -233,7 +240,7 @@ abstract class AFile
         // Somewhy it can not read ONLY SOME JPEG files, we've caught it on Windows + IIS + PHP
         // Solution from here: https://github.com/libgd/libgd/issues/206
         if (!$image) {
-            $image = imagecreatefromstring(file_get_contents($path));
+            $image = imagecreatefromstring($this->getFS()->fsFileGetContents($this->isDiskFile, $path));
         }
         // end of fix
 
@@ -242,14 +249,15 @@ abstract class AFile
                 Message::createMessage(Message::IMAGE_PROCESS_ERROR)
             );
         }
-        imagesavealpha($image, true);
+        // imagesavealpha($image, true);
         return $image;
     }
 
     protected function setFreeFileName()
     {
-        $name = Utils::getFreeFileName(
-            $this->getBaseDir() . $this->getDir(),
+        $name = $this->getFS()->fsGetFreeFileName(
+            $this->isDiskFile,
+            rtrim($this->getBaseDir(), '/') . '/' . $this->getDir(),
             $this->getName(),
             false
         );
@@ -261,7 +269,7 @@ abstract class AFile
         try {
             $this->m_config
                 ->getFS()
-                ->copyCommited($this->getFullPath(), $dstFile->getFullPath());
+                ->fsCopyFile(false, $this->getFullPath(), true, $dstFile->getFullPath());
         } catch (Exception $e) {
             error_log($e);
             throw new MessageException(
@@ -274,19 +282,4 @@ abstract class AFile
         }
     }
 
-    public function copyTo($dstFile)
-    {
-        try {
-            Utils::copyFile($this->getFullPath(), $dstFile->getFullPath());
-        } catch (Exception $e) {
-            error_log($e);
-            throw new MessageException(
-                Message::createMessage(
-                    Message::UNABLE_TO_COPY_FILE,
-                    $this->getName(),
-                    $dstFile->getName()
-                )
-            );
-        }
-    }
 }

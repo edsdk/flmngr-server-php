@@ -84,7 +84,7 @@ class ActionUploadCommit extends AActionUploadId
                 Message::createMessage(Message::INTERNAL_ERROR, $req->dir)
             );
         }
-
+        
         $req->dir = $this->validateString($req->dir, '');
 
         if (strpos($req->dir, '/') !== 0) {
@@ -100,7 +100,7 @@ class ActionUploadCommit extends AActionUploadId
         $req->dir = Utils::normalizeNoEndSeparator($req->dir) . '/';
 
         $dir = $this->m_config->getBaseDir() . $req->dir;
-        if (!file_exists($dir) && !mkdir($dir, 0777, TRUE)) {
+        if (!$this->getFS()->fsFileExists(true, $dir) && !$this->getFS()->fsMkDir(true, $dir, 0777, TRUE)) {
             throw new MessageException(
                 Message::createMessage(Message::DIR_DOES_NOT_EXIST, $req->dir)
             );
@@ -154,7 +154,7 @@ class ActionUploadCommit extends AActionUploadId
                 }
             }
         }
-
+        
         // Check files for errors
         for ($i = 0; $i < count($filesToCommit); $i++) {
             $file = $filesToCommit[$i];
@@ -198,7 +198,7 @@ class ActionUploadCommit extends AActionUploadId
                 $dirRoot = substr($dirRoot, $index + 1);
             }
 
-            $cachedFile = $this->m_config->getFS()->getCachedFile("/" . $dirRoot . "/" . $fileCommited->getPath());
+            $cachedFile = $this->m_config->getFS()->getCachedFile($this->m_config->getBaseDir() . "/" . $fileCommited->getPath());
             $cachedFile->delete();
 
             if ($req->imageFormats != NULL) {
@@ -227,7 +227,7 @@ class ActionUploadCommit extends AActionUploadId
                     $formatFileName .= ($imageFormat->suffix != NULL ? $imageFormat->suffix : "");
 
                     try {
-                        $this->m_config->getFS()->resizeFile(
+                        $this->m_config->getFS()->reqResizeFile(
                             $path,
                             $formatFileName,
                             $imageFormat->maxWidth,
@@ -248,9 +248,7 @@ class ActionUploadCommit extends AActionUploadId
 
         if (!$this->m_config->doKeepUploads()) {
             try {
-                Utils::delete(
-                    $this->m_config->getTmpDir() . '/' . $req->uploadId
-                );
+                $this->getFS()->fsRmDir(false, $this->m_config->getTmpDir() . '/' . $req->uploadId);
             } catch (Exception $e) {
                 error_log($e);
                 // Error, but we do not throw anything - we've commited files and need to return them

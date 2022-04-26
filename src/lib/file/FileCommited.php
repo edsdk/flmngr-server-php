@@ -22,6 +22,8 @@ class FileCommited extends AFile
 
     protected $m_modificationName;
 
+    protected $isDiskFile = true;
+
     public function __construct($config, $dir, $name)
     {
         parent::__construct($config, $dir, $name);
@@ -333,32 +335,14 @@ class FileCommited extends AFile
             );
         }
 
-        $this->writeImage($image);
+        $this->getFS()->fsWriteImage(
+            $this->isDiskFile,
+            $this->getFullPath(),
+            $image,
+            $this->m_config->getJpegQuality()
+        );
 
         return true;
-    }
-
-    private function writeImage($image)
-    {
-        switch (strtolower($this->getExt())) {
-            case 'gif':
-                imagegif($image, $this->getFullPath());
-                break;
-            case 'jpeg':
-            case 'jpg':
-                imagejpeg(
-                    $image,
-                    $this->getFullPath(),
-                    $this->m_config->getJpegQuality()
-                );
-                break;
-            case 'png':
-                imagepng($image, $this->getFullPath());
-                break;
-            case 'bmp':
-                imagewbmp($image, $this->getFullPath());
-                break;
-        }
     }
 
     const FIT_EXACT = 0;
@@ -479,5 +463,18 @@ class FileCommited extends AFile
     public function isCommited()
     {
         return true;
+    }
+
+    public function copyTo($dstFile)
+    {
+        if (!$this->getFS()->fsCopyFile(true, $this->getFullPath(), true, $dstFile->getFullPath())) {
+            throw new MessageException(
+                Message::createMessage(
+                    Message::UNABLE_TO_COPY_FILE,
+                    $this->getName(),
+                    $dstFile->getName()
+                )
+            );
+        }
     }
 }

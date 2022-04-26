@@ -9,7 +9,6 @@
 
 namespace EdSDK\FlmngrServer\servlet;
 
-use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\action\req\ReqError;
 use EdSDK\FlmngrServer\lib\action\resp\Message;
 use EdSDK\FlmngrServer\lib\action\resp\RespFail;
@@ -31,6 +30,7 @@ class UploaderServlet
         $this->m_json = new JsonCodec($this->m_actions);
         $this->m_config = new ServletConfig($config);
         $this->m_uploader = new Uploader($this->m_config, $this->m_actions);
+        $this->fs = $config['filesystem'];
     }
 
     private function getFileInfo($vector)
@@ -49,14 +49,6 @@ class UploaderServlet
         $req = null;
         try {
             $req = $this->m_json->fromJson($post['data']);
-            if ($this->m_config->isTestAllowed()) {
-                if (array_key_exists('test_serverConfig', $req)) {
-                    $this->m_config->setTestConfig($req->test_serverConfig);
-                }
-                if (array_key_exists('test_clearAllFiles', $req)) {
-                    $this->clearAllFiles();
-                }
-            }
         } catch (Exception $e) {
             error_log($e);
             return null;
@@ -77,8 +69,9 @@ class UploaderServlet
 
     protected function clearAllFiles()
     {
-        Utils::cleanDirectory($this->m_config->getTmpDir());
-        Utils::cleanDirectory($this->m_config->getBaseDir());
+        // TODO: for unit tests
+        //Utils::cleanDirectory($this->m_config->getTmpDir());
+        //Utils::cleanDirectory($this->m_config->getBaseDir());
     }
 
     protected function addHeaders()

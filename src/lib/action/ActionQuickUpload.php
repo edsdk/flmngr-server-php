@@ -23,11 +23,6 @@ class ActionQuickUpload extends AActionUploadId
     }
     public function run($req)
     {
-        $fileSystem = new FMDiskFileSystem([
-            'dirFiles' => $this->m_config->getBaseDir(),
-            'dirCache' => '',
-        ]);
-
         if ($req->m_file) {
             if (
                 isset($this->m_config->request->post['dir']) &&
@@ -44,15 +39,14 @@ class ActionQuickUpload extends AActionUploadId
                         : '/' . dirname($this->m_config->request->post['dir']);
 
                 $fullPath = basename($this->m_config->getBaseDir()) . $path;
-                $fileSystem->createDir($fullPath, $target_dir);
-                $uploadDir =
-                    $fileSystem->getAbsolutePath($fullPath) . '/' . $target_dir;
+                $this->getFS()->fsMkDir(true, $fullPath . '/' . $target_dir);
+                $uploadDir = '/' . $target_dir;
                 $req->m_relativePath = $this->m_config->request->post['dir'];
             } else {
                 $target_dir = '';
                 $fullPath = basename($this->m_config->getBaseDir());
                 $uploadDir =
-                    $fileSystem->getAbsolutePath($fullPath) .
+                    $fullPath .
                     '/' .
                     $target_dir .
                     '/';

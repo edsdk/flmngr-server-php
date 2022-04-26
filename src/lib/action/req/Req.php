@@ -13,9 +13,6 @@ class Req
 {
     public $action;
 
-    public $test_clearAllFiles;
-    public $test_serverConfig;
-
     public $m_fileName;
     public $m_fileSize;
     public $m_file;

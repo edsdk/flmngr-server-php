@@ -34,28 +34,6 @@ class Utils
         return null;
     }
 
-    public static function getFreeFileName($dir, $defaultName, $alwaysWithIndex)
-    {
-        $i = $alwaysWithIndex ? 0 : -1;
-        do {
-            $i++;
-            if ($i == 0) {
-                $name = $defaultName;
-            } else {
-                $name =
-                    Utils::getNameWithoutExt($defaultName) .
-                    '_' .
-                    $i .
-                    (Utils::getExt($defaultName) != null
-                        ? '.' . Utils::getExt($defaultName)
-                        : '');
-            }
-            $filePath = $dir . $name;
-            $ok = !file_exists($filePath);
-        } while (!$ok);
-        return $name;
-    }
-
     const PROHIBITED_SYMBOLS = "/\\?%*:|\"<>";
 
     public static function fixFileName($name)
@@ -187,6 +165,38 @@ class Utils
         return substr($str, -strlen($ends)) === $ends;
     }
 
+    public static function normalizeNoEndSeparator($path)
+    {
+        // TODO: normalize
+        return rtrim($path, '/');
+    }
+
+    public static function writeImageContents($ext, $image, $jpegQuality) {
+        ob_clean();
+        ob_start();
+        switch (strtolower($ext)) {
+            case 'gif':
+                imagegif($image);
+                break;
+            case 'jpeg':
+            case 'jpg':
+                imagejpeg(
+                    $image,
+                    null,
+                    $jpegQuality
+                );
+                break;
+            case 'png':
+                imagepng($image);
+                break;
+            case 'bmp':
+                imagewbmp($image);
+                break;
+        }
+        $contents = ob_get_clean();
+        return $contents;
+    }
+
     public static function getImageInfo($file)
     {
         $size = @getimagesize($file);
@@ -201,49 +211,6 @@ class Utils
         $imageInfo->width = $size[0];
         $imageInfo->height = $size[1];
         return $imageInfo;
-    }
-
-    public static function cleanDirectory($dir)
-    {
-        Utils::delete($dir, false);
-    }
-
-    public static function delete($dirOrFile, $deleteSelfDir = true)
-    {
-        if (is_file($dirOrFile)) {
-            $result = is_dir($dirOrFile)
-                ? rmdir($dirOrFile)
-                : unlink($dirOrFile);
-            if (!$result) {
-                throw new Exception('Unable to delete file: ' . $dirOrFile);
-            }
-        } elseif (is_dir($dirOrFile)) {
-            $scan = glob(rtrim($dirOrFile, '/') . '/*');
-            foreach ($scan as $index => $path) {
-                Utils::delete($path);
-            }
-            if ($deleteSelfDir) {
-                if (!rmdir($dirOrFile)) {
-                    throw new Exception(
-                        'Unable to delete directory: ' . $dirOrFile
-                    );
-                }
-            }
-        }
-    }
-
-    public static function copyFile($src, $dst)
-    {
-        // File will be overwritten if exists - it is OK
-        if (!copy($src, $dst)) {
-            throw new Exception('Unable to copy file ' . $src . ' to ' . $dst);
-        }
-    }
-
-    public static function normalizeNoEndSeparator($path)
-    {
-        // TODO: normalize
-        return rtrim($path, '/');
     }
 
 }

@@ -21,13 +21,13 @@ class DownloadedURL
 
 class URLDownloader
 {
-    public static function download($url, $dir)
+    public static function download($fs, $url, $dir)
     {
-        $result = URLDownloader::downloadURL($url, $dir);
+        $result = URLDownloader::downloadURL($fs, $url, $dir);
         return $result;
     }
 
-    private static function downloadURL($url, $dir)
+    private static function downloadURL($fs, $url, $dir)
     {
         $curl = curl_init($url);
         curl_setopt(
@@ -91,7 +91,7 @@ class URLDownloader
                     $fileName = 'url';
                 }
                 $fileName = Utils::fixFileName($fileName);
-                $fileName = Utils::getFreeFileName($dir, $fileName, false);
+                $fileName = $fs->fsGetFreeFileName(true, $dir, $fileName, false);
             } else {
                 throw new MessageException(
                     Message::createMessage(
@@ -110,7 +110,7 @@ class URLDownloader
         }
 
         $saveFilePath = $dir . '/' . $fileName;
-        file_put_contents($saveFilePath, $response);
+        $fs->fsFilePutContents(true, $saveFilePath, $response);
         curl_close($curl);
 
         $result->fileName = $fileName;

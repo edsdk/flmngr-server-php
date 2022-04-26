@@ -26,6 +26,8 @@ class FileUploadedQuick extends AFile
 
     protected $relativePath;
 
+    protected $isDiskFile = true;
+
     public function __construct($config, $dir, $name, $newName, $relativePath)
     {
         parent::__construct($config, $dir, $name);
@@ -51,7 +53,7 @@ class FileUploadedQuick extends AFile
             $newpath = $path . '/' . $filename;
             $newname = $filename;
             $counter = 0;
-            while (file_exists($newpath)) {
+            while ($this->getFS()->fsFileExists(true, $newpath)) {
                 $newname = $name . '_' . $counter . $ext;
                 $newpath = $path . '/' . $newname;
                 $counter++;
@@ -165,7 +167,7 @@ class FileUploadedQuick extends AFile
     {
         $initName = $this->getName();
         $this->setFreeFileName();
-        if (!move_uploaded_file($file['tmp_name'], $this->getFullPath())) {
+        if (!$this->getFS()->fsMoveFileOrDir(false, $file['tmp_name'], true, $this->getFullPath())) {
             throw new MessageException(
                 Message::createMessage(Message::WRITING_FILE_ERROR, $initName)
             );

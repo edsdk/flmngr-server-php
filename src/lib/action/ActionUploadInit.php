@@ -22,6 +22,7 @@ class ActionUploadInit extends AAction
 
     public function run($req)
     {
+        
         $alphabeth = 'abcdefghijklmnopqrstuvwxyz0123456789';
         do {
             $id = '';
@@ -30,9 +31,9 @@ class ActionUploadInit extends AAction
                 $id .= substr($alphabeth, $charNumber, 1);
             }
             $dir = $this->m_config->getTmpDir() . '/' . $id;
-        } while (file_exists($dir));
+        } while ($this->getFS()->fsFileExists(false, $dir));
 
-        if (!mkdir($dir, 0777, TRUE)) {
+        if (!$this->getFS()->fsMkDir(false, $dir, 0777, TRUE)) {
             throw new MessageException(
                 Message::createMessage(Message::UNABLE_TO_CREATE_UPLOAD_DIR)
             );

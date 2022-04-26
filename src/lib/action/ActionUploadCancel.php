@@ -27,9 +27,7 @@ class ActionUploadCancel extends AActionUploadId
         $this->validateUploadId($req);
         if (!$this->m_config->doKeepUploads()) {
             try {
-                Utils::delete(
-                    $this->m_config->getTmpDir() . '/' . $req->uploadId
-                );
+                $this->getFS()->fsRmDir(false, $this->m_config->getTmpDir() . '/' . $req->uploadId);
             } catch (Exception $e) {
                 error_log($e);
                 throw new MessageException(
