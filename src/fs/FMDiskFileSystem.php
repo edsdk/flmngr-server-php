@@ -274,7 +274,7 @@ class FMDiskFileSystem extends AFileSystem
                 $fileName = substr($filePath, $index + 1);
 
                 $result[] = array(
-                    "dir" => substr($dirPath, strlen($this->getRootDirName() + 1)),
+                    "dir" => substr($dirPath, strlen($this->getRootDirName()) + 1),
                     "file" => $this->getFileStructure($dirPath, $fileName)
                 );
             }
