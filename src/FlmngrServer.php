@@ -48,39 +48,8 @@ class FlmngrServer
 
         $action = null;
         if ($request->requestMethod === 'POST') {
-            // Default action is "upload" if requester tries to upload a file
-            // This is support for generic files upload in WYSIWYG editors
-            if (
-                (isset($request->files['file']) ||
-                    isset($request->files['upload'])) &&
-                !isset($request->post['action']) &&
-                !isset($request->post['data'])
-            ) {
-                $json = [
-                    'action' => 'upload',
-                ];
-                $request->post['data'] = json_encode($json);
-            }
-
-            if (isset($request->post['action'])) {
+            if (isset($request->post['action']))
                 $action = $request->post['action'];
-            }
-            if ($action == null && isset($request->post['data'])) {
-                $configUploader = [
-                    'dirFiles' => $config['dirFiles'],
-                    'dirTmp' => $config['dirTmp'],
-                    'filesystem' => $config['filesystem'],
-                    'config' => isset($config['uploader'])
-                        ? $config['uploader']
-                        : [],
-                ];
-                FileUploaderServer::fileUploadRequest(
-                    $configUploader,
-                    $request->post,
-                    $request->files
-                );
-                return;
-            }
         } else {
             if ($request->requestMethod === 'GET') {
                 $action = $request->get['action'];
@@ -144,7 +113,7 @@ class FlmngrServer
                     header('Content-Type:' . $mimeType);
                     fpassthru($data);
                     die();
-                case 'upload':
+                case 'uploadFile':
                     $data = $fileSystem->reqUpload($request);
                     break;
                 case 'getVersion':

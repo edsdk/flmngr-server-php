@@ -6,6 +6,7 @@ use EdSDK\FlmngrServer\lib\action\resp\Message;
 use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\MessageException;
 use EdSDK\FlmngrServer\model\FMMessage;
+use Mockery\Exception;
 
 class DriverLocal {
 
@@ -167,7 +168,7 @@ class DriverLocal {
 
     function move($path, $newName)
     {
-        $res = rename($this->dir . $path, $newName);
+        $res = rename($this->dir . $path, $this->dir . $newName);
         if ($res === false) {
             throw new MessageException(
                 FMMessage::createMessage(FMMessage::FM_UNABLE_TO_RENAME)
@@ -210,9 +211,17 @@ class DriverLocal {
     // Dir (not empty) or file
     function delete($path)
     {
-        if (is_file($this->dir . $path))
-            @unlink($this->dir . $path);
-        else {
+        if (is_file($this->dir . $path)) {
+            $result = @unlink($this->dir . $path);
+            if ($result === FALSE) {
+                throw new MessageException(
+                    Message::createMessage(
+                        Message::UNABLE_TO_DELETE_FILE,
+                        $path
+                    )
+                );
+            }
+        } else {
             foreach ($this->directories($path) as $dir)
                 $this->delete($path . '/' . $dir);
 
@@ -256,19 +265,23 @@ class DriverLocal {
 
     function copyDirectory($src, $dst)
     {
-        $this->copyDirectory__recurse($src, $dst);
+        $this->copyDirectory__recurse($src, $dst, false);
     }
 
-    private function copyDirectory__recurse($src, $dst)
+    private function copyDirectory__recurse($src, $dst, $createThisDstDir)
     {
-        $this->makeDirectory($dst);
+        // Do not create a root directory (target directory to copy inside already exists)
+        if ($createThisDstDir)
+            $this->makeDirectory($dst);
+
         $fFiles = $this->files($src);
         foreach ($fFiles as $file) {
             if ($file != '.' && $file != '..') {
                 if ($this->directoryExists(true, $src . '/' . $file)) {
                     $this->copyDir__recurse(
                         $src . '/' . $file,
-                        $dst . '/' . $file
+                        $dst . '/' . $file,
+                        true
                     );
                 } else {
                     $this->copyFile($src . '/' . $file, $dst . '/' . $file);
@@ -298,7 +311,7 @@ class DriverLocal {
             $ok = !$this->exists($filePath);
         } while (!$ok);
 
-        $result = move_uploaded_file($file['tmp_name'], $dir . '/' . $name);
+        $result = move_uploaded_file($file['tmp_name'], $this->dir . $dir . '/' . $name);
         if (!$result) {
             throw new MessageException(
                 Message::createMessage(

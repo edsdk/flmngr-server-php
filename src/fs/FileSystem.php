@@ -396,7 +396,7 @@ class FileSystem
         $dirPath = $this->getRelativePath($dirPath);
         $newPath = $this->getRelativePath($newPath);
 
-        $this->driverFiles->copyFile($dirPath, $newPath);
+        $this->driverFiles->copyDirectory($dirPath, $newPath);
     }
 
     function reqCopyFiles($request) {
@@ -407,9 +407,10 @@ class FileSystem
         for ($i = 0; $i < count($filesPaths); $i++) {
             $filesPaths[$i] = $this->getRelativePath($filesPaths[$i]);
         }
+        $newPath = $this->getRelativePath($newPath);
 
         for ($i = 0; $i < count($filesPaths); $i++) {
-            $this->driverFiles->copyFile($filesPaths[$i], $newPath . '/' . basename($filesPaths[$i]));
+            $this->driverFiles->copyFile($filesPaths[$i], rtrim($newPath, '\/') . '/' . basename($filesPaths[$i]));
         }
     }
 
@@ -463,7 +464,8 @@ class FileSystem
         $dirPath = $request->post['d'];
 
         $dirPath = $this->getRelativePath($dirPath);
-        $this->driverFiles->deleteDirectory($dirPath);
+
+        $this->driverFiles->delete($dirPath);
     }
 
     function reqMove($request)
@@ -498,7 +500,8 @@ class FileSystem
         }
 
         $path = $this->getRelativePath($path);
-        $this->driverFiles->move($path, basename($path) . '/' . $newName);
+
+        $this->driverFiles->move($path, rtrim(dirname($path), '\/') . '/' . $newName);
     }
 
     function reqMoveFiles($request)
@@ -509,6 +512,7 @@ class FileSystem
         for ($i = 0; $i < count($filesPaths); $i++) {
             $filesPaths[$i] = $this->getRelativePath($filesPaths[$i]);
         }
+        $newPath = $this->getRelativePath($newPath);
 
         for ($i = 0; $i < count($filesPaths); $i++) {
             $filePath = $filesPaths[$i];
@@ -551,16 +555,8 @@ class FileSystem
 
             for ($j = 0; $j < count($fullPaths); $j++) {
                 // Previews can not exist, but original file must present
-                if ($this->fsIsFile(true, $fullPaths[$j]) || $j === 0) {
-                    $res = $this->fsUnLink(true, $fullPaths[$j]);
-                    if ($res === false) {
-                        throw new MessageException(
-                            Message::createMessage(
-                                Message::UNABLE_TO_DELETE_FILE,
-                                $fullPaths[$j]
-                            )
-                        );
-                    }
+                if ($this->driverFiles->fileExists($fullPaths[$j]) || $j === 0) {
+                    $this->driverFiles->delete($fullPaths[$j]);
                 }
             }
         }
@@ -763,7 +759,7 @@ class FileSystem
     }
 
     function reqGetVersion($request) {
-        return ['version' => '4', 'language' => 'php'];
+        return ['version' => '5', 'language' => 'php'];
     }
 
     public function reqUpload($request) {
@@ -778,13 +774,13 @@ class FileSystem
         }
         $file = $request->files['file'];
 
-        $dir = $this->getRelativePath($dir);
-
         // $name is name assigned on file move (to avoid overwrite)
         $name = $this->driverFiles->uploadFile($file, $dir);
 
+        $resultFile = $this->getFileStructure($dir, $name);
+
         return [
-            'file' => $dir . '/' . $name
+            'file' => $resultFile
         ];
     }
 
@@ -884,21 +880,6 @@ class FileSystem
         return $result;
     }
 
-    function fsMoveFileOrDir__moveS3Dir($from, $to) {
-        $files = $this->fsScanDir(true, $from);
-
-        foreach ($files as $file)
-            $this->fsMoveFileOrDir(true, $from . '/' . $file, true, $to . '/' . $file);
-
-        $dirs = $this->fsGetDriver(true)->directories($from);
-        foreach ($dirs as $dir)
-            $this->fsMoveFileOrDir__moveS3Dir($from . '/' . $dir, $to . '/' . $dir);
-
-        $this->fsRmDir(true, $from);
-
-        return true;
-    }
-
     function fsMoveFileOrDir($isFromDiskFiles, $from, $isToDiskFiles, $to)
     {
         // Moving from the root of local file system
@@ -973,96 +954,5 @@ class FileSystem
         $this->profile("fsFileGetContents(" . ($isDiskFiles ? 'DISK' : 'cache') . "): " . $path, $start);
         return $result;
     }
-
-    function fsUnLink($isDiskFiles, $path)
-    {
-        $start = microtime(true);
-        if ($path[0] == '/') {
-            $path = substr($path, 1);
-        }
-        $result = $this->fsGetDriver($isDiskFiles)->delete($path);
-        $this->profile("fsUnLink(" . ($isDiskFiles ? 'DISK' : 'cache') . "): " . $path, $start);
-        return $result;
-    }
-
-    function fsFilePutContents($isDiskFiles, $path, $data)
-    {
-        $start = microtime(true);
-        if ($path[0] == '/') {
-            $path = substr($path, 1);
-        }
-        $result = $this->fsGetDriver($isDiskFiles)->put($path, $data);
-        $this->profile("fsFilePutContents(" . ($isDiskFiles ? 'DISK' : 'cache') . "): " . $path, $start);
-        return $result;
-    }
-
-    function fsIsDir($isDiskFiles, $path)
-    {
-        if ($path === '' || $path === '/')
-            return true;
-        $start = microtime(true);
-        $now = $start;
-        if ($path[0] == '/') {
-            $path = substr($path, 1);
-        }
-        try {
-            $mime = $this->fsGetDriver($isDiskFiles)->getMimeType($path);
-            $now = $this->profile( "  fsIsDir - getMimeType(" . ($isDiskFiles ? 'DISK' : 'cache') . ")", $now);
-            $result = $this->fsGetDriver($isDiskFiles)->exists($path) && ($mime == 'directory' || $mime === FALSE);
-            $now = $this->profile("  fsIsDir - exists(" . ($isDiskFiles ? 'DISK' : 'cache') . ")", $now);
-            $this->profile("fsIsDir(" . ($isDiskFiles ? 'DISK' : 'cache') . "): " . $path, $start);
-            return $result;
-        } catch (Exception $e) {
-            return false;
-        }
-    }
-
-    function fsRmDir($isDiskFiles, $path)
-    {
-        $start = microtime(true);
-        if ($path[0] == '/') {
-            $path = substr($path, 1);
-        }
-
-        $result = $this->fsGetDriver($isDiskFiles)->deleteDirectory($path);
-
-        $this->profile("fsRmDir(" . ($isDiskFiles ? 'DISK' : 'cache') . "): " . $path, $start);
-        return $result;
-    }
-
-    function fsPassThrough($isDiskFiles, $fullPath, $mimeType)
-    {
-        $stream = fopen('php://memory', 'r+');
-        fwrite($stream, $this->fsFileGetContents($isDiskFiles, $fullPath));
-        rewind($stream);
-        header('Content-Type:' . $mimeType);
-        fpassthru($stream);
-    }
-
-    function fsFileExists($isDiskFiles, $path)
-    {
-        if ($path === "")
-            return true;
-        $start = microtime(true);
-        $result = $this->fsGetDriver($isDiskFiles)->exists($path);
-        $this->profile("fsFileExists(" . ($isDiskFiles ? 'DISK' : 'cache') . "): " . $path, $start);
-        return $result;
-    }
-
-    function fsRmDirRecursive($isDiskFiles, $dir)
-    {
-        if (!$this->fsFileExists($isDiskFiles, $dir)) {
-            return true;
-        }
-        if (!$this->fsIsDir($isDiskFiles, $dir)) {
-            return $this->fsUnLink($isDiskFiles, $dir);
-        }
-        return $this->fsRmDir($isDiskFiles, $dir);
-    }
-
-
-
-
-
 
 }
