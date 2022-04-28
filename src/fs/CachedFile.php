@@ -201,11 +201,11 @@ class CachedFile
                 $resizedImage = @imagecreatefromstring($this->driverCache->get($cacheFilePreviewRelative));
 
             $pixels = [];
-            $xx = imagesx($resizedImage);
-            $yy = imagesy($resizedImage);
-            for ($y = 0; $y < $yy; $y++) {
+            $xxCache = imagesx($resizedImage);
+            $yyCache = imagesy($resizedImage);
+            for ($y = 0; $y < $yyCache; $y++) {
                 $row = [];
-                for ($x = 0; $x < $xx; $x++) {
+                for ($x = 0; $x < $xxCache; $x++) {
                     $index = imagecolorat($resizedImage, $x, $y);
                     $colors = imagecolorsforindex($resizedImage, $index);
                     $row[] = [$colors['red'], $colors['green'], $colors['blue']];

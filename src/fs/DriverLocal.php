@@ -14,7 +14,7 @@ class DriverLocal {
 
     function __construct($config)
     {
-        $this->dir = rtrim($config['dir'], '\/');
+        $this->dir = rtrim($config['dir'], '\\/');
     }
 
     function getDriverName() {

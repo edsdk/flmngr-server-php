@@ -87,7 +87,7 @@ class FileSystem
 
         // Add files
         foreach ($dirsStr as $dirStr) {
-            $dirArr = preg_split('/\//', $dirStr);
+            $dirArr = preg_split('/\\//', $dirStr);
             if ($addFilesPrefix)
                 array_unshift($dirArr, "Files");
             $dirs[] = new FMDir(
@@ -410,7 +410,7 @@ class FileSystem
         $newPath = $this->getRelativePath($newPath);
 
         for ($i = 0; $i < count($filesPaths); $i++) {
-            $this->driverFiles->copyFile($filesPaths[$i], rtrim($newPath, '\/') . '/' . basename($filesPaths[$i]));
+            $this->driverFiles->copyFile($filesPaths[$i], rtrim($newPath, '\\/') . '/' . basename($filesPaths[$i]));
         }
     }
 
@@ -501,7 +501,7 @@ class FileSystem
 
         $path = $this->getRelativePath($path);
 
-        $this->driverFiles->move($path, rtrim(dirname($path), '\/') . '/' . $newName);
+        $this->driverFiles->move($path, rtrim(dirname($path), '\\/') . '/' . $newName);
     }
 
     function reqMoveFiles($request)
@@ -618,6 +618,26 @@ class FileSystem
         $height = $request->post['mh'];
         $mode = $request->post['mode'];
 
+        if (strpos($filePath, '..') !== false) {
+            throw new MessageException(
+                FMMessage::createMessage(
+                    FMMessage::FM_DIR_NAME_CONTAINS_INVALID_SYMBOLS
+                )
+            );
+        }
+
+        if (
+            strpos($newFileNameWithoutExt, '..') !== false ||
+            strpos($newFileNameWithoutExt, '/') !== false ||
+            strpos($newFileNameWithoutExt, '\\') !== false
+        ) {
+            throw new MessageException(
+                FMMessage::createMessage(
+                    FMMessage::FM_DIR_NAME_CONTAINS_INVALID_SYMBOLS
+                )
+            );
+        }
+
         $index = strrpos($filePath, '/');
         $oldFileNameWithExt = substr($filePath, $index + 1);
         $newExt = 'png';
@@ -683,6 +703,12 @@ class FileSystem
             }
         }
 
+        error_log("111111");
+        error_log($width);
+        error_log($height);
+        error_log($originalWidth);
+        error_log($originalHeight);
+
         if (!$needToFitWidth && !$needToFitHeight) {
             // if we generated the preview in past, we need to update it in any case
             if (
@@ -708,6 +734,7 @@ class FileSystem
         $resizedImage = imagecreatetruecolor($width, $height);
         imagealphablending($resizedImage, false);
         imagesavealpha($resizedImage, true);
+
         imagecopyresampled(
             $resizedImage,
             $image,
