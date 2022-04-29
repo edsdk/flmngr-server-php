@@ -123,15 +123,15 @@ class CachedFile
                 );
             }
 
-            $xx = imagesx($image);
-            $yy = imagesy($image);
+            $original_width = imagesx($image);
+            $original_height = imagesy($image);
             if ($width === FALSE || $height === FALSE) {
                 throw new MessageException(
                     Message::createMessage(Message::IMAGE_PROCESS_ERROR)
                 );
             }
 
-            $ratio_original = $xx / $yy; // ratio original
+            $ratio_original = $original_width / $original_height; // ratio original
 
             if ($width == NULL) {
                 $width = floor($ratio_original * $height);
@@ -142,14 +142,14 @@ class CachedFile
             $ratio_thumb = $width / $height; // ratio thumb
 
             if ($ratio_original >= $ratio_thumb) {
-                $yo = $yy;
+                $yo = $original_height;
                 $xo = ceil(($yo * $width) / $height);
-                $xo_ini = ceil(($xx - $xo) / 2);
+                $xo_ini = ceil(($original_width - $xo) / 2);
                 $xy_ini = 0;
             } else {
-                $xo = $xx;
+                $xo = $original_width;
                 $yo = ceil(($xo * $height) / $width);
-                $xy_ini = ceil(($yy - $yo) / 2);
+                $xy_ini = ceil(($original_height - $yo) / 2);
                 $xo_ini = 0;
             }
 
@@ -219,8 +219,8 @@ class CachedFile
             $cachedImageInfo = $this->getInfo();
             if (count($pixels) > 0) {
                 $cachedImageInfo["blurHash"] = Blurhash::encode($pixels, $components_x, $components_y);
-                $cachedImageInfo["width"] = $xx;
-                $cachedImageInfo["height"] = $yy;
+                $cachedImageInfo["width"] = $original_width;
+                $cachedImageInfo["height"] = $original_height;
                 $this->writeInfo($cachedImageInfo);
             }
         }

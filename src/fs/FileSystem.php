@@ -199,7 +199,6 @@ class FileSystem
 
             $fieldName = $file;
 
-            error_log($dirPath . '/' . $file);
             $cachedImageInfo = $this->getCachedImageInfo($dirPath . '/' . $file);
 
             $fieldDate = $cachedImageInfo['mtime'];
@@ -703,12 +702,6 @@ class FileSystem
             }
         }
 
-        error_log("111111");
-        error_log($width);
-        error_log($height);
-        error_log($originalWidth);
-        error_log($originalHeight);
-
         if (!$needToFitWidth && !$needToFitHeight) {
             // if we generated the preview in past, we need to update it in any case
             if (
@@ -786,7 +779,7 @@ class FileSystem
     }
 
     function reqGetVersion($request) {
-        return ['version' => '5', 'language' => 'php'];
+        return ['version' => '5', 'language' => 'php', 'storage' => $this->driverFiles->getDriverName()];
     }
 
     public function reqUpload($request) {
@@ -815,7 +808,7 @@ class FileSystem
     {
         $now = microtime(true);
         $time = $now - $start;
-        error_log(number_format($time, 3, ",", "")." sec   " . $text);
+        #error_log(number_format($time, 3, ",", "")." sec   " . $text);
         return $now;
     }
 
