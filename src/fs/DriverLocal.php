@@ -21,6 +21,10 @@ class DriverLocal {
         return "Local";
     }
 
+    function getDir() {
+        return $this->dir;
+    }
+
     function size($path)
     {
         return filesize($this->dir . $path);

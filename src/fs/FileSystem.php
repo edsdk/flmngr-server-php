@@ -779,7 +779,13 @@ class FileSystem
     }
 
     function reqGetVersion($request) {
-        return ['version' => '5', 'language' => 'php', 'storage' => $this->driverFiles->getDriverName()];
+        return [
+            'version' => '5',
+            'language' => 'php',
+            'storage' => $this->driverFiles->getDriverName(),
+            'dirFiles' => $this->driverFiles->getDir(),
+            'dirCache' => $this->driverCache->getDir()
+        ];
     }
 
     public function reqUpload($request) {
