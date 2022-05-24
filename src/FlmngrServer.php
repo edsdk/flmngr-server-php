@@ -9,6 +9,8 @@
 
 namespace EdSDK\FlmngrServer;
 
+use EdSDK\FlmngrServer\fs\FMDiskFileSystem;
+use EdSDK\FlmngrServer\lib\FMRequestCommon;
 use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\resp\Response;
 use Exception;
@@ -35,9 +37,15 @@ class FlmngrServer
         if (!isset($config['dirTmp']))
             $config['dirTmp'] = Utils::normalizeNoEndSeparator($config['dirCache'] . '/.tmp');
 
-        $frontController = new FlmngrFrontController($config);
-        $request = $frontController->request;
-        $config['filesystem'] = $frontController->filesystem;
+        if (isset($config['request'])) {
+          $request = $config['request'];
+        }
+        else {
+          $request = new FMRequestCommon();
+        }
+        $request->parseRequest();
+
+        $config['filesystem'] = new FMDiskFileSystem($config);
 
         if (isset($request->post['embedPreviews'])) {
             $config['filesystem']->embedPreviews = $request->post['embedPreviews'];

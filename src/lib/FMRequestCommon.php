@@ -3,7 +3,7 @@ namespace EdSDK\FlmngrServer\lib;
 
 use EdSDK\FlmngrServer\lib\IFmRequest;
 
-class CommonRequest extends IFmRequest
+class FMRequestCommon extends IFmRequest
 {
     public function parseRequest()
     {
