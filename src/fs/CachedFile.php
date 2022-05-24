@@ -219,8 +219,12 @@ class CachedFile
             $cachedImageInfo = $this->getInfo();
             if (count($pixels) > 0) {
                 $cachedImageInfo["blurHash"] = Blurhash::encode($pixels, $components_x, $components_y);
-                $cachedImageInfo["width"] = $original_width;
-                $cachedImageInfo["height"] = $original_height;
+                if (isset($original_width)) {
+                  $cachedImageInfo["width"] = $original_width;
+                }
+                if (isset($original_height)) {
+                  $cachedImageInfo["height"] = $original_height;
+                }
                 $this->writeInfo($cachedImageInfo);
             }
         }
