@@ -354,7 +354,7 @@ class FileSystem
     {
         $cachedImageInfo = $this->getCachedImageInfo($dirPath . '/' . $fileName);
         $resultFile = array(
-            'name' => $fileName,
+            'name' => "". $fileName,
             'size' => $cachedImageInfo['size'],
             'timestamp' => $cachedImageInfo['mtime']
         );
