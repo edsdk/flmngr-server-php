@@ -10,31 +10,30 @@
 namespace EdSDK\FlmngrServer\lib\action;
 
 use EdSDK\FlmngrServer\lib\file\Utils;
-use EdSDK\FlmngrServer\lib\action\resp\Message;
+use EdSDK\FlmngrServer\model\Message;
 use EdSDK\FlmngrServer\lib\action\resp\RespOk;
 use EdSDK\FlmngrServer\lib\MessageException;
 use Exception;
 
-class ActionUploadCancel extends AActionUploadId
-{
-    public function getName()
-    {
-        return 'uploadCancel';
-    }
+class ActionUploadCancel extends AActionUploadId {
 
-    public function run($req)
-    {
-        $this->validateUploadId($req);
-        if (!$this->m_config->doKeepUploads()) {
-            try {
-                $this->getFS()->fsRmDir(false, $this->m_config->getTmpDir() . '/' . $req->uploadId);
-            } catch (Exception $e) {
-                error_log($e);
-                throw new MessageException(
-                    Message::createMessage(Message::UNABLE_TO_DELETE_UPLOAD_DIR)
-                );
-            }
-        }
-        return new RespOk();
+  public function getName() {
+    return 'uploadCancel';
+  }
+
+  public function run($req) {
+    $this->validateUploadId($req);
+    if (!$this->m_config->doKeepUploads()) {
+      try {
+        $this->getFS()
+          ->fsRmDir(FALSE, $this->m_config->getTmpDir() . '/' . $req->uploadId);
+      } catch (Exception $e) {
+        error_log($e);
+        throw new MessageException(
+          Message::createMessage(Message::UNABLE_TO_DELETE_UPLOAD_DIR)
+        );
+      }
     }
+    return new RespOk();
+  }
 }

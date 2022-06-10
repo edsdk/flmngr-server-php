@@ -1,20 +1,20 @@
 <?php
+
 namespace EdSDK\FlmngrServer\lib;
 
-abstract class IFmRequest
-{
-    public $post;
+abstract class IFmRequest {
 
-    public $get;
+  public $post;
 
-    public $files;
+  public $get;
 
-    public $requestMethod;
+  public $files;
 
-    abstract public function parseRequest();
+  public $requestMethod;
 
-    public function __construct($config = null)
-    {
-        $this->config = $config;
-    }
+  abstract public function parseRequest();
+
+  public function __construct($config = NULL) {
+    $this->config = $config;
+  }
 }

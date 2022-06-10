@@ -15,15 +15,15 @@ use Exception;
 
 class FileUploaderServer {
 
-    static function fileUploadRequest($config, $post, $files) {
-        try {
-            $servlet = new UploaderServlet();
-            $servlet->init($config);
-            $servlet->doPost($post, $files);
-            die;
-        } catch (Exception $e) {
-            error_log($e);
-            throw $e;
-        }
+  static function fileUploadRequest($config, $post, $files) {
+    try {
+      $servlet = new UploaderServlet();
+      $servlet->init($config);
+      $servlet->doPost($post, $files);
+      die;
+    } catch (Exception $e) {
+      error_log($e);
+      throw $e;
     }
+  }
 }

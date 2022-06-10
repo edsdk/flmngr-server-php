@@ -9,32 +9,31 @@
 
 namespace EdSDK\FlmngrServer\lib\action;
 
-abstract class AAction
-{
-    protected $m_config;
+abstract class AAction {
 
-    public function setConfig($config)
-    {
-        $this->m_config = $config;
-    }
+  protected $m_config;
 
-    abstract public function getName();
-    abstract public function run($req);
-    function getFS()
-    {
-        return $this->m_config->m_conf['filesystem'];
-    }
+  public function setConfig($config) {
+    $this->m_config = $config;
+  }
 
-    protected function validateBoolean($b, $defaultValue)
-    {
-        return $b === null ? $defaultValue : $b;
-    }
-    protected function validateInteger($i, $defaultValue)
-    {
-        return $i === null ? $defaultValue : $i;
-    }
-    protected function validateString($s, $defaultValue)
-    {
-        return $s === null ? $defaultValue : $s;
-    }
+  abstract public function getName();
+
+  abstract public function run($req);
+
+  function getFS() {
+    return $this->m_config->m_conf['filesystem'];
+  }
+
+  protected function validateBoolean($b, $defaultValue) {
+    return $b === NULL ? $defaultValue : $b;
+  }
+
+  protected function validateInteger($i, $defaultValue) {
+    return $i === NULL ? $defaultValue : $i;
+  }
+
+  protected function validateString($s, $defaultValue) {
+    return $s === NULL ? $defaultValue : $s;
+  }
 }

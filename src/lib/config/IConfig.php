@@ -9,25 +9,29 @@
 
 namespace EdSDK\FlmngrServer\lib\config;
 
-interface IConfig
-{
-    public function setTestConfig($testConf);
+interface IConfig {
 
-    public function getBaseDir();
-    public function getTmpDir();
+  public function setTestConfig($testConf);
 
-    public function getMaxUploadFileSize();
-    public function getAllowedExtensions();
-    public function getJpegQuality();
+  public function getBaseDir();
 
-    public function getMaxImageResizeWidth();
-    public function getMaxImageResizeHeight();
+  public function getTmpDir();
 
-    public function getCrossDomainUrl();
+  public function getMaxUploadFileSize();
 
-    public function doKeepUploads();
+  public function getAllowedExtensions();
 
-    public function isTestAllowed();
+  public function getJpegQuality();
 
-    public function getRelocateFromHosts();
+  public function getMaxImageResizeWidth();
+
+  public function getMaxImageResizeHeight();
+
+  public function getCrossDomainUrl();
+
+  public function doKeepUploads();
+
+  public function isTestAllowed();
+
+  public function getRelocateFromHosts();
 }

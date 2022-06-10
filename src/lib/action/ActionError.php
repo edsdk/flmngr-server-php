@@ -11,15 +11,13 @@ namespace EdSDK\FlmngrServer\lib\action;
 
 use EdSDK\FlmngrServer\lib\action\resp\RespFail;
 
-class ActionError extends AAction
-{
-    public function getName()
-    {
-        return 'error';
-    }
+class ActionError extends AAction {
 
-    public function run($req)
-    {
-        return new RespFail($req->message);
-    }
+  public function getName() {
+    return 'error';
+  }
+
+  public function run($req) {
+    return new RespFail($req->message);
+  }
 }

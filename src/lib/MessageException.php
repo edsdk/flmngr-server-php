@@ -11,18 +11,16 @@ namespace EdSDK\FlmngrServer\lib;
 
 use Exception;
 
-class MessageException extends Exception
-{
-    protected $m_message;
+class MessageException extends Exception {
 
-    public function __construct($message)
-    {
-        parent::__construct();
-        $this->m_message = (array) $message;
-    }
+  protected $m_message;
 
-    public function getFailMessage()
-    {
-        return $this->m_message;
-    }
+  public function __construct($message) {
+    parent::__construct();
+    $this->m_message = (array) $message;
+  }
+
+  public function getFailMessage() {
+    return $this->m_message;
+  }
 }

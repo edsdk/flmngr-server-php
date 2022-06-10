@@ -9,24 +9,24 @@
 
 namespace EdSDK\FlmngrServer\lib\action;
 
-use EdSDK\FlmngrServer\lib\action\resp\Message;
+use EdSDK\FlmngrServer\model\Message;
 use EdSDK\FlmngrServer\lib\MessageException;
 
-abstract class AActionUploadId extends AAction
-{
-    protected function validateUploadId($req)
-    {
-        if ($req->uploadId === null) {
-            throw new MessageException(
-                Message::createMessage(Message::UPLOAD_ID_NOT_SET)
-            );
-        }
+abstract class AActionUploadId extends AAction {
 
-        $dir = $this->m_config->getTmpDir() . '/' . $req->uploadId;
-        if (!$this->getFS()->fsFileExists(false, $dir) || !$this->getFS()->fsIsDir(false, $dir)) {
-            throw new MessageException(
-                Message::createMessage(Message::UPLOAD_ID_INCORRECT)
-            );
-        }
+  protected function validateUploadId($req) {
+    if ($req->uploadId === NULL) {
+      throw new MessageException(
+        Message::createMessage(Message::UPLOAD_ID_NOT_SET)
+      );
     }
+
+    $dir = $this->m_config->getTmpDir() . '/' . $req->uploadId;
+    if (!$this->getFS()->fsFileExists(FALSE, $dir) || !$this->getFS()
+        ->fsIsDir(FALSE, $dir)) {
+      throw new MessageException(
+        Message::createMessage(Message::UPLOAD_ID_INCORRECT)
+      );
+    }
+  }
 }

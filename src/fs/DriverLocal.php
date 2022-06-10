@@ -2,15 +2,72 @@
 
 namespace EdSDK\FlmngrServer\fs;
 
-use EdSDK\FlmngrServer\lib\action\resp\Message;
+use EdSDK\FlmngrServer\model\Message;
 use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\MessageException;
-use EdSDK\FlmngrServer\model\FMMessage;
-use Mockery\Exception;
 
 class DriverLocal {
 
   private $dir;
+
+  // Link to cache driver
+  // NULL if we are inside cache driver instance
+  private $driverCache;
+
+  // Some cached info (array of named chunks)
+  // Access it only by getCacheChunk() and write by setCacheChunk()
+  private $cacheChunks = [];
+
+  // For use by FileSystem.php only, do not override
+  public function setDriverCache($driverCache) {
+    $this->driverCache = $driverCache;
+  }
+
+  private function getCacheChunkPath($chunkName) {
+    return "/fs/" . $chunkName . ".json";
+  }
+
+  // Returns "path-to-cache/fs/driver-name/chunk-name.json" content
+  // i. e. ".cache/fs/all-files.json"
+  // if file modify time is not older then $validSeconds
+  // Returns NULL if file does not exist of outdated
+  function &getCacheChunk($chunkName, $validSeconds) {
+
+    if (in_array($chunkName, $this->cacheChunks)) {
+      return $this->cacheChunks[$chunkName];
+    }
+
+    $chunkPath = $this->getCacheChunkPath($chunkName);
+    if ($this->driverCache->fileExists($chunkPath) && time() - $this->driverCache->lastModified($chunkPath) <= $validSeconds) {
+      $content = $this->driverCache->get($chunkPath);
+      $json = json_decode($content, JSON_OBJECT_AS_ARRAY);
+      return $json;
+    }
+    else {
+      $null = NULL;
+      return $null;
+    }
+
+  }
+
+  function setCacheChunk($chunkName, &$json) {
+    $chunkPath = $this->getCacheChunkPath($chunkName);
+    $chunkPathDir = dirname($chunkPath);
+    $this->driverCache->makeDirectory($chunkPathDir, 0777, TRUE);
+    $this->driverCache->put($chunkPath, json_encode($json));
+  }
+
+  function deleteCacheChunk($chunkName) {
+    try {
+      $chunkPath = $this->getCacheChunkPath($chunkName);
+      if ($this->driverCache->fileExists($chunkPath)) {
+        $this->driverCache->delete($chunkPath);
+      }
+    } catch (Exception $e) {
+      error_log("Error on deleting cache chunk");
+      error_log($e);
+    }
+  }
 
   function __construct($config) {
     $this->dir = rtrim($config['dir'], '\\/');
@@ -33,11 +90,16 @@ class DriverLocal {
   }
 
   function makeDirectory($path) {
+
+    if (file_exists($this->dir . $path) && is_dir($this->dir . $path)) {
+      return;
+    }
+
     $result = mkdir($this->dir . $path, 0777, TRUE);
     if (!$result) {
       throw new MessageException(
-        FMMessage::createMessage(
-          FMMessage::FM_UNABLE_TO_CREATE_DIRECTORY,
+        Message::createMessage(
+          Message::FM_UNABLE_TO_CREATE_DIRECTORY,
           $path
         )
       );
@@ -64,8 +126,8 @@ class DriverLocal {
         error_log($trace);
 
         throw new MessageException(
-          FMMessage::createMessage(
-            FMMessage::FM_UNABLE_TO_CREATE_DIRECTORY,
+          Message::createMessage(
+            Message::FM_UNABLE_TO_CREATE_DIRECTORY,
             $this->dir
           )
         );
@@ -80,8 +142,9 @@ class DriverLocal {
     $fDir = $this->dir;
 
     if (!file_exists($fDir) || !is_dir($fDir)) {
+      error_log("Root directory does not exist: " . $fDir);
       throw new MessageException(
-        FMMessage::createMessage(FMMessage::FM_ROOT_DIR_DOES_NOT_EXIST)
+        Message::createMessage(Message::FM_ROOT_DIR_DOES_NOT_EXIST)
       );
     }
     $hideDirs[] = '.cache';
@@ -104,8 +167,8 @@ class DriverLocal {
     $rawDirs = glob($fDir . '/*', GLOB_ONLYDIR);
     if ($rawDirs === FALSE) {
       throw new MessageException(
-        FMMessage::createMessage(
-          FMMessage::FM_UNABLE_TO_LIST_CHILDREN_IN_DIRECTORY
+        Message::createMessage(
+          Message::FM_UNABLE_TO_LIST_CHILDREN_IN_DIRECTORY
         )
       );
     }
@@ -152,14 +215,18 @@ class DriverLocal {
       error_log("Error while reading dir contents: " . $path);
       error_log($e);
       throw new MessageException(
-        FMMessage::createMessage(FMMessage::FM_DIR_CANNOT_BE_READ)
+        Message::createMessage(Message::FM_DIR_CANNOT_BE_READ)
       );
     }
 
     $files = [];
     foreach ($rawFiles as $file) {
       if (is_file($file)) {
-        $files[] = basename($file);
+        $files[] = [
+          'name' => basename($file),
+          'mtime' => $this->lastModified($path . '/' . $file),
+          'size' => $this->size($path . '/' . $file),
+        ];
       }
     }
     return $files;
@@ -169,7 +236,7 @@ class DriverLocal {
     $res = rename($this->dir . $path, $this->dir . $newName);
     if ($res === FALSE) {
       throw new MessageException(
-        FMMessage::createMessage(FMMessage::FM_UNABLE_TO_RENAME)
+        Message::createMessage(Message::FM_UNABLE_TO_RENAME)
       );
     }
   }
@@ -197,7 +264,7 @@ class DriverLocal {
 
   // Put file contents
   function put($path, $contents) {
-    return file_put_contents($this->dir . $path, $contents);
+    file_put_contents($this->dir . $path, $contents);
   }
 
   // Dir (not empty) or file
@@ -225,7 +292,7 @@ class DriverLocal {
         }
 
         foreach ($this->files($path) as $file) {
-          $this->delete($path . '/' . $file);
+          $this->delete($path . '/' . $file['name']);
         }
 
         $this->deleteDirectory($path);
@@ -239,8 +306,8 @@ class DriverLocal {
     $result = rmdir($this->dir . $path);
     if ($result === FALSE) {
       throw new MessageException(
-        FMMessage::createMessage(
-          FMMessage::FM_UNABLE_TO_DELETE_DIRECTORY
+        Message::createMessage(
+          Message::FM_UNABLE_TO_DELETE_DIRECTORY
         )
       );
     }
@@ -255,8 +322,8 @@ class DriverLocal {
     $res = copy($this->dir . $pathSrc, $this->dir . $pathDst);
     if ($res === FALSE) {
       throw new MessageException(
-        FMMessage::createMessage(
-          FMMessage::FM_ERROR_ON_COPYING_FILES
+        Message::createMessage(
+          Message::FM_ERROR_ON_COPYING_FILES
         )
       );
     }
@@ -274,16 +341,17 @@ class DriverLocal {
 
     $fFiles = $this->files($src);
     foreach ($fFiles as $file) {
-      if ($file != '.' && $file != '..') {
-        if ($this->directoryExists(TRUE, $src . '/' . $file)) {
+      $fileName = $file['name'];
+      if ($fileName != '.' && $fileName != '..') {
+        if ($this->directoryExists(TRUE, $src . '/' . $fileName)) {
           $this->copyDir__recurse(
-            $src . '/' . $file,
-            $dst . '/' . $file,
+            $src . '/' . $fileName,
+            $dst . '/' . $fileName,
             TRUE
           );
         }
         else {
-          $this->copyFile($src . '/' . $file, $dst . '/' . $file);
+          $this->copyFile($src . '/' . $fileName, $dst . '/' . $fileName);
         }
       }
     }
