@@ -182,10 +182,12 @@ class FlmngrServer {
       }
     }
     if (!$isError) {
-      $file = $request->files['file'];
-      if (isset($file) && $file['tmp_name'] === '') {
-        $isError = TRUE;
-        $maxSizeParameter = 'upload_max_filesize';
+      if (isset($request->files['file'])) {
+        $file = $request->files['file'];
+        if ($file['tmp_name'] === '') {
+          $isError = TRUE;
+          $maxSizeParameter = 'upload_max_filesize';
+        }
       }
     }
 
