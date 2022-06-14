@@ -54,7 +54,7 @@ class DriverLocal {
     $chunkPath = $this->getCacheChunkPath($chunkName);
     $chunkPathDir = dirname($chunkPath);
     $this->driverCache->makeDirectory($chunkPathDir, 0777, TRUE);
-    $this->driverCache->put($chunkPath, json_encode($json));
+    $this->driverCache->put($chunkPath, json_encode($json, JSON_PRETTY_PRINT));
   }
 
   function deleteCacheChunk($chunkName) {
