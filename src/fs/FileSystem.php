@@ -535,6 +535,36 @@ class FileSystem {
     }
   }
 
+  // TODO: Currently we delete another image formats, probably we should regenerate them
+  protected function updateFormatsAndClearCachePreviewForFile($filePath, $formatSuffixes) {
+    $fullPaths = [];
+
+    $index = strrpos($filePath, '.');
+    if ($index > -1) {
+      $fullPathPrefix = substr($filePath, 0, $index);
+    }
+    else {
+      $fullPathPrefix = $filePath;
+    }
+    if (isset($formatSuffixes) && is_array($formatSuffixes)) {
+      for ($j = 0; $j < count($formatSuffixes); $j++) {
+        $exts = ["png", "jpg", "jpeg", "webp"];
+        for ($k = 0; $k < count($exts); $k++) {
+          $fullPaths[] = $fullPathPrefix . $formatSuffixes[$j] . '.' . $exts[$k];
+        }
+      }
+    }
+
+    $cachedFile = $this->getCachedFile($filePath);
+    $cachedFile->delete();
+
+    for ($j = 0; $j < count($fullPaths); $j++) {
+      if ($this->driverFiles->fileExists($fullPaths[$j])) {
+        $this->driverFiles->delete($fullPaths[$j]);
+      }
+    }
+  }
+
   // "suffixes" is an optional parameter (does not supported by Flmngr UI v1)
   function reqDeleteFiles($request) {
     $filesPaths = preg_split('/\|/', $request->post['fs']);
@@ -542,37 +572,11 @@ class FileSystem {
 
     for ($i = 0; $i < count($filesPaths); $i++) {
       $filesPaths[$i] = $this->getRelativePath($filesPaths[$i]);
+      $this->driverFiles->delete($filesPaths[$i]);
     }
 
-    for ($i = 0; $i < count($filesPaths); $i++) {
-      $filePath = $filesPaths[$i];
-      $fullPaths = [$filePath];
-
-      $index = strrpos($filesPaths[$i], '.');
-      if ($index > -1) {
-        $fullPathPrefix = substr($filePath, 0, $index);
-      }
-      else {
-        $fullPathPrefix = $filePath;
-      }
-      if (isset($formatSuffixes) && is_array($formatSuffixes)) {
-        for ($j = 0; $j < count($formatSuffixes); $j++) {
-          $exts = ["png", "jpg", "jpeg", "webp"];
-          for ($k = 0; $k < count($exts); $k++) {
-            $fullPaths[] = $fullPathPrefix . $formatSuffixes[$j] . '.' . $exts[$k];
-          }
-        }
-      }
-
-      $cachedFile = $this->getCachedFile($filesPaths[0]);
-      $cachedFile->delete();
-
-      for ($j = 0; $j < count($fullPaths); $j++) {
-        // Previews can not exist, but original file must present
-        if ($this->driverFiles->fileExists($fullPaths[$j]) || $j === 0) {
-          $this->driverFiles->delete($fullPaths[$j]);
-        }
-      }
+    foreach ($filesPaths as $filePath) {
+      $this->updateFormatsAndClearCachePreviewForFile($filePath, $formatSuffixes);
     }
   }
 
@@ -807,7 +811,9 @@ class FileSystem {
   }
 
   public function reqUpload($request) {
-    $dir = isset($request->post['dir']) ? $request->post['dir'] : "/" . $this->driverFiles->getRootDirName();
+    $dir = isset($request->post['dir']) ? $request->post['dir'] : '/' . $this->driverFiles->getRootDirName();
+
+    $isOverwrite = isset($request->post['mode']) && $request->post['mode'] === "OVERWRITE";
 
     if (!isset($request->files['file'])) {
       throw new MessageException(
@@ -818,8 +824,13 @@ class FileSystem {
     }
     $file = $request->files['file'];
 
-    // $name is name assigned on file move (to avoid overwrite)
-    $name = $this->driverFiles->uploadFile($file, $dir);
+    $name = $this->driverFiles->uploadFile($file, $dir, $isOverwrite);
+
+
+    if ($isOverwrite) {
+      $formatSuffixes = $request->post['formatSuffixes'];
+      $this->updateFormatsAndClearCachePreviewForFile($dir . '/' . $name, $formatSuffixes);
+    }
 
     $resultFile = $this->getFileStructure($dir, $name);
 

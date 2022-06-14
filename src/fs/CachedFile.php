@@ -47,8 +47,12 @@ class CachedFile {
 
   // Clears cache for this file
   function delete() {
-    $this->driverCache->delete($this->cacheFileJsonRelative);
-    $this->driverCache->delete($this->cacheFilePreviewRelative);
+    if ($this->driverCache->exists($this->cacheFileJsonRelative)) {
+      $this->driverCache->delete($this->cacheFileJsonRelative);
+    }
+    if ($this->driverCache->exists($this->cacheFilePreviewRelative)) {
+      $this->driverCache->delete($this->cacheFilePreviewRelative);
+    }
   }
 
   function getInfo() {

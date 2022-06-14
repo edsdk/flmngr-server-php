@@ -279,6 +279,7 @@ class DriverLocal {
           )
         );
       }
+
     }
     else {
 
@@ -357,27 +358,38 @@ class DriverLocal {
     }
   }
 
-  function uploadFile($file, $dir) {
+  function uploadFile__getName($file, $dir, $isOverwrite) {
+    if ($isOverwrite) {
+      // Remove existing file if exists
+      $name = $file['name'];
+      if ($this->exists($dir . '/' . $name))
+        $this->delete($dir . '/' . $name);
+    } else {
+      // Get free file name
+      $i = -1;
+      do {
+        $i++;
+        if ($i == 0) {
+          $name = $file['name'];
+        }
+        else {
+          $name =
+            Utils::getNameWithoutExt($file['name']) .
+            '_' .
+            $i .
+            (Utils::getExt($file['name']) != NULL
+              ? '.' . Utils::getExt($file['name'])
+              : '');
+        }
+        $ok = !$this->exists($dir . '/' . $name);
+      } while (!$ok);
+    }
+    return $name;
+  }
 
-    // Get free file name
-    $i = -1;
-    do {
-      $i++;
-      if ($i == 0) {
-        $name = $file['name'];
-      }
-      else {
-        $name =
-          Utils::getNameWithoutExt($file['name']) .
-          '_' .
-          $i .
-          (Utils::getExt($file['name']) != NULL
-            ? '.' . Utils::getExt($file['name'])
-            : '');
-      }
-      $filePath = $dir . '/' . $name;
-      $ok = !$this->exists($filePath);
-    } while (!$ok);
+  function uploadFile($file, $dir, $isOverwrite) {
+
+    $name = $this->uploadFile__getName($file, $dir, $isOverwrite);
 
     $result = move_uploaded_file($file['tmp_name'], $this->dir . $dir . '/' . $name);
     if (!$result) {
