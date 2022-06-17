@@ -192,7 +192,10 @@ class Utils {
     if ($size === FALSE) {
       //error_log("Unable to read image info of " . $file);
       throw new MessageException(
-        Message::createMessage(Message::IMAGE_PROCESS_ERROR)
+        Message::createMessage(
+          FALSE,
+          Message::IMAGE_PROCESS_ERROR
+        )
       );
     }
 

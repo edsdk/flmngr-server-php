@@ -10,6 +10,8 @@ class DriverLocal {
 
   private $dir;
 
+  private $isCacheDriver;
+
   // Link to cache driver
   // NULL if we are inside cache driver instance
   private $driverCache;
@@ -21,6 +23,48 @@ class DriverLocal {
   // For use by FileSystem.php only, do not override
   public function setDriverCache($driverCache) {
     $this->driverCache = $driverCache;
+  }
+
+  function __construct($config, $isCacheDriver = FALSE) {
+    $this->isCacheDriver = $isCacheDriver;
+
+    if (!in_array('dir', array_keys($config)) || $config['dir'] === NULL) {
+      try {
+        throw new MessageException(
+          Message::createMessage(
+            $this->isCacheDriver,
+            Message::FM_ROOT_DIR_IS_NOT_SET
+          )
+        );
+      } catch (Exception $e) {
+        error_log(print_r($e, TRUE));
+      }
+    }
+
+    $this->dir = rtrim($config['dir'], '\\/');
+
+    $this->makeRootDir();
+
+    if (!is_readable($this->dir)) {
+      throw new MessageException(
+        Message::createMessage(
+          $this->isCacheDriver,
+          Message::FM_DIR_IS_NOT_READABLE,
+          $this->dir
+        )
+      );
+    }
+
+    if (!is_writable($this->dir)) {
+      throw new MessageException(
+        Message::createMessage(
+          $this->isCacheDriver,
+          Message::FM_DIR_IS_NOT_WRITABLE,
+          $this->dir
+        )
+      );
+    }
+
   }
 
   private function getCacheChunkPath($chunkName) {
@@ -69,10 +113,6 @@ class DriverLocal {
     }
   }
 
-  function __construct($config) {
-    $this->dir = rtrim($config['dir'], '\\/');
-  }
-
   function getDriverName() {
     return "Local";
   }
@@ -99,6 +139,7 @@ class DriverLocal {
     if (!$result) {
       throw new MessageException(
         Message::createMessage(
+          $this->isCacheDriver,
           Message::FM_UNABLE_TO_CREATE_DIRECTORY,
           $path
         )
@@ -116,22 +157,7 @@ class DriverLocal {
 
   function makeRootDir() {
     if (!$this->directoryExists("")) {
-      if (!$this->makeDirectory("")) {
-        error_log("Unable to create a directory: " . $this->dir);
-
-        ob_start();
-        debug_print_backtrace();
-        $trace = ob_get_contents();
-        ob_end_clean();
-        error_log($trace);
-
-        throw new MessageException(
-          Message::createMessage(
-            Message::FM_UNABLE_TO_CREATE_DIRECTORY,
-            $this->dir
-          )
-        );
-      }
+      $this->makeDirectory("");
     }
   }
 
@@ -144,7 +170,10 @@ class DriverLocal {
     if (!file_exists($fDir) || !is_dir($fDir)) {
       error_log("Root directory does not exist: " . $fDir);
       throw new MessageException(
-        Message::createMessage(Message::FM_ROOT_DIR_DOES_NOT_EXIST)
+        Message::createMessage(
+          $this->isCacheDriver,
+          Message::FM_ROOT_DIR_DOES_NOT_EXIST
+        )
       );
     }
     $hideDirs[] = '.cache';
@@ -168,6 +197,7 @@ class DriverLocal {
     if ($rawDirs === FALSE) {
       throw new MessageException(
         Message::createMessage(
+          $this->isCacheDriver,
           Message::FM_UNABLE_TO_LIST_CHILDREN_IN_DIRECTORY
         )
       );
@@ -199,7 +229,11 @@ class DriverLocal {
       $rawDirs = glob($this->dir . $path . '/*', GLOB_ONLYDIR);
     } catch (Exception $e) {
       throw new MessageException(
-        Message::createMessage(Message::DIR_DOES_NOT_EXIST, $path)
+        Message::createMessage(
+          $this->isCacheDriver,
+          Message::DIR_DOES_NOT_EXIST,
+          $path
+        )
       );
     }
     foreach ($rawDirs as $dir) {
@@ -215,7 +249,10 @@ class DriverLocal {
       error_log("Error while reading dir contents: " . $path);
       error_log($e);
       throw new MessageException(
-        Message::createMessage(Message::FM_DIR_CANNOT_BE_READ)
+        Message::createMessage(
+          $this->isCacheDriver,
+          Message::FM_DIR_CANNOT_BE_READ
+        )
       );
     }
 
@@ -236,7 +273,10 @@ class DriverLocal {
     $res = rename($this->dir . $path, $this->dir . $newName);
     if ($res === FALSE) {
       throw new MessageException(
-        Message::createMessage(Message::FM_UNABLE_TO_RENAME)
+        Message::createMessage(
+          $this->isCacheDriver,
+          Message::FM_UNABLE_TO_RENAME
+        )
       );
     }
   }
@@ -274,6 +314,7 @@ class DriverLocal {
       if ($result === FALSE) {
         throw new MessageException(
           Message::createMessage(
+            $this->isCacheDriver,
             Message::UNABLE_TO_DELETE_FILE,
             $path
           )
@@ -308,6 +349,7 @@ class DriverLocal {
     if ($result === FALSE) {
       throw new MessageException(
         Message::createMessage(
+          $this->isCacheDriver,
           Message::FM_UNABLE_TO_DELETE_DIRECTORY
         )
       );
@@ -324,6 +366,7 @@ class DriverLocal {
     if ($res === FALSE) {
       throw new MessageException(
         Message::createMessage(
+          $this->isCacheDriver,
           Message::FM_ERROR_ON_COPYING_FILES
         )
       );
@@ -395,6 +438,7 @@ class DriverLocal {
     if (!$result) {
       throw new MessageException(
         Message::createMessage(
+          $this->isCacheDriver,
           Message::WRITING_FILE_ERROR,
           $dir . '/' . $file['name']
         )

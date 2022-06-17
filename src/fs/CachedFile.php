@@ -24,20 +24,13 @@ class CachedFile {
   function __construct(
     $fileRelative, // Example: /path/to/file.jpg
     $driverFiles,
-    $driverCache,
-    $isCacheInFiles
+    $driverCache
   ) {
     $this->fileRelative = $fileRelative;
     $this->driverFiles = $driverFiles;
     $this->driverCache = $driverCache;
 
     $this->cacheFileRelative = '/previews' . $fileRelative;
-
-    if ($isCacheInFiles) {
-      $i = strrpos($this->cacheFileRelative, '/');
-      $this->cacheFileRelative = substr($this->cacheFileRelative, 0, $i + 1) .
-        '.cache/previews/' . substr($this->cacheFileRelative, $i + 1);
-    }
 
     $this->cacheFileJsonRelative = $this->cacheFileRelative . '.json';
     $this->cacheFilePreviewRelative = $this->cacheFileRelative . '.png';
@@ -120,7 +113,7 @@ class CachedFile {
       $image = imagecreatefromstring($contents);
       if (!$image) {
         throw new MessageException(
-          Message::createMessage(Message::IMAGE_PROCESS_ERROR)
+          Message::createMessage(FALSE,Message::IMAGE_PROCESS_ERROR)
         );
       }
 
@@ -128,7 +121,7 @@ class CachedFile {
       $original_height = imagesy($image);
       if ($width === FALSE || $height === FALSE) {
         throw new MessageException(
-          Message::createMessage(Message::IMAGE_PROCESS_ERROR)
+          Message::createMessage(FALSE, Message::IMAGE_PROCESS_ERROR)
         );
       }
 
@@ -194,6 +187,7 @@ class CachedFile {
       if ($this->driverCache->put($cacheFilePreviewRelative, $imageContents) === FALSE) {
         throw new MessageException(
           Message::createMessage(
+            TRUE,
             Message::FM_UNABLE_TO_WRITE_PREVIEW_IN_CACHE_DIR,
             $cacheFilePreviewRelative
           )

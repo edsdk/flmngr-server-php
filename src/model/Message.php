@@ -104,24 +104,32 @@ class Message {
 
   const FM_ERROR_ON_MOVING_FILES = 10014; // Error on moving files
 
-  const FM_NOT_ERROR_NOT_NEEDED_TO_UPDATE = 10015; // Not an error. Request asked not to create a preview if it already exists
+  const FM_NOT_ERROR_NOT_NEEDED_TO_UPDATE = 10015;
+
+  const FM_ROOT_DIR_IS_NOT_SET = 10016; // Shows incorrect configuration
+
+  const FM_DIR_IS_NOT_READABLE = 10017; // %1 is dir
+
+  const FM_DIR_IS_NOT_WRITABLE = 10018; // %1 is dir
 
   public $code;
 
   public $args;
 
-  public $files;
+  public $isCacheIssue;
 
-  private function __construct() {
+  private function __construct($isCacheIssue) {
+    $this->isCacheIssue = $isCacheIssue;
   }
 
   public static function createMessage(
+    $isCacheException,
     $code,
     $arg1 = NULL,
     $arg2 = NULL,
     $arg3 = NULL
   ) {
-    $msg = new Message();
+    $msg = new Message($isCacheException);
     $msg->code = $code;
     if ($arg1 != NULL) {
       $msg->args = [];
@@ -136,18 +144,4 @@ class Message {
     return $msg;
   }
 
-  public static function createMessageByFiles($code, $files) {
-    $msg = new Message();
-    $msg->code = $code;
-    $msg->files = $files;
-    return $msg;
-  }
-
-  public static function createMessageByFile($code, $file) {
-    $msg = new Message();
-    $msg->code = $code;
-    $msg->files = [];
-    $msg->files[] = $file;
-    return $msg;
-  }
 }

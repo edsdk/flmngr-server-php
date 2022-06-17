@@ -21,6 +21,7 @@ ini_set('display_errors', 0);
 class FlmngrServer {
 
   static function flmngrRequest($config) {
+
     if (!isset($config['dirCache']) && isset($config['driverFiles'])) {
       $resp = new Response("Set cache dir when using another files driver", NULL);
       $strResp = JsonCodec::s_toJson($resp);
@@ -34,34 +35,35 @@ class FlmngrServer {
       return;
     }
 
-    $frontController = new FlmngrFrontController($config);
-    $request = $frontController->request;
-    $fileSystem = $frontController->filesystem;
+    try {
 
-    if (FlmngrServer::checkUploadLimit($request)) {
-      return;
-    } // file size exceed the limit from php.ini
+      $frontController = new FlmngrFrontController($config);
+      $request = $frontController->request;
+      $fileSystem = $frontController->filesystem;
 
-    if (isset($request->post['embedPreviews'])) {
-      $fileSystem->embedPreviews = $request->post['embedPreviews'];
-    }
+      if (FlmngrServer::checkUploadLimit($request)) {
+        return;
+      } // file size exceed the limit from php.ini
 
-    $action = NULL;
-    if ($request->requestMethod === 'POST') {
-      if (isset($request->post['action'])) {
-        $action = $request->post['action'];
+      if (isset($request->post['embedPreviews'])) {
+        $fileSystem->embedPreviews = $request->post['embedPreviews'];
       }
-    }
-    else {
-      if ($request->requestMethod === 'GET') {
-        $action = $request->get['action'];
+
+      $action = NULL;
+      if ($request->requestMethod === 'POST') {
+        if (isset($request->post['action'])) {
+          $action = $request->post['action'];
+        }
       }
       else {
-        return;
+        if ($request->requestMethod === 'GET') {
+          $action = $request->get['action'];
+        }
+        else {
+          return;
+        }
       }
-    }
 
-    try {
       $data = TRUE; // will be optionally filled by request
       switch ($action) {
         case 'dirList':
@@ -123,7 +125,7 @@ class FlmngrServer {
           $data = $fileSystem->reqGetVersion($request);
           break;
         default:
-          throw new MessageException(Message::createMessage(Message::ACTION_NOT_FOUND));
+          throw new MessageException(Message::createMessage(FALSE,Message::ACTION_NOT_FOUND));
       }
       $resp = new Response(NULL, $data);
     } catch (MessageException $e) {
@@ -197,6 +199,7 @@ class FlmngrServer {
 
       $resp = new Response(
         Message::createMessage(
+          FALSE,
           Message::FILE_SIZE_EXCEEDS_SYSTEM_LIMIT,
           '' . $_SERVER['CONTENT_LENGTH'],
           '' . $maxSizeValueFormatted,

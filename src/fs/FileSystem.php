@@ -22,14 +22,13 @@ class FileSystem {
 
   private $driverCache;
 
-  private $isCacheInFiles;
-
   public $embedPreviews = FALSE;
 
   function __construct($config) {
-    $this->driverFiles = isset($config['driverFiles']) ? $config['driverFiles'] : new DriverLocal(['dir' => $config['dirFiles']]);
-    $this->driverCache = isset($config['driverCache']) ? $config['driverCache'] : new DriverLocal(['dir' => $config['dirCache']]);
-    $this->isCacheInFiles = $config['dirCache'] === $config['dirFiles'];
+    $dirFiles = in_array('dirFiles', array_keys($config)) ? $config['dirFiles'] : NULL; // NULL will cause exception later
+    $dirCache = in_array('dirCache', array_keys($config)) ? $config['dirCache'] : ($dirFiles === NULL ? NULL : $dirFiles . '/.cache');
+    $this->driverFiles = in_array('driverFiles', array_keys($config)) ? $config['driverFiles'] : new DriverLocal(['dir' => $dirFiles]);
+    $this->driverCache = in_array('driverCache', array_keys($config)) ? $config['driverCache'] : new DriverLocal(['dir' => $dirCache], TRUE);
     $this->driverFiles->setDriverCache($this->driverCache);
   }
 
@@ -37,6 +36,7 @@ class FileSystem {
     if (strpos($path, '..') !== FALSE) {
       throw new MessageException(
         Message::createMessage(
+          FALSE,
           Message::FM_DIR_NAME_CONTAINS_INVALID_SYMBOLS
         )
       );
@@ -58,7 +58,10 @@ class FileSystem {
     }
     if (strpos($path, '/' . $rootDirName) !== 0) {
       throw new MessageException(
-        Message::createMessage(Message::FM_DIR_NAME_INCORRECT_ROOT)
+        Message::createMessage(
+          FALSE,
+          Message::FM_DIR_NAME_INCORRECT_ROOT
+        )
       );
     }
 
@@ -436,8 +439,7 @@ class FileSystem {
     return new CachedFile(
       $filePath,
       $this->driverFiles,
-      $this->driverCache,
-      $this->isCacheInFiles
+      $this->driverCache
     );
   }
 
@@ -468,6 +470,7 @@ class FileSystem {
     if (strpos($name, '/') !== FALSE) {
       throw new MessageException(
         Message::createMessage(
+          FALSE,
           Message::FM_DIR_NAME_CONTAINS_INVALID_SYMBOLS
         )
       );
@@ -495,6 +498,7 @@ class FileSystem {
     } catch (Exception $e) {
       throw new MessageException(
         Message::createMessage(
+          FALSE,
           Message::FM_ERROR_ON_MOVING_FILES
         )
       );
@@ -508,6 +512,7 @@ class FileSystem {
     if (strpos($newName, '/') !== FALSE) {
       throw new MessageException(
         Message::createMessage(
+          FALSE,
           Message::FM_DIR_NAME_CONTAINS_INVALID_SYMBOLS
         )
       );
@@ -593,6 +598,7 @@ class FileSystem {
       if (strpos($file, '..') !== FALSE) {
         throw new MessageException(
           Message::createMessage(
+            FALSE,
             Message::FM_DIR_NAME_CONTAINS_INVALID_SYMBOLS
           )
         );
@@ -637,6 +643,7 @@ class FileSystem {
     if (strpos($filePath, '..') !== FALSE) {
       throw new MessageException(
         Message::createMessage(
+          FALSE,
           Message::FM_DIR_NAME_CONTAINS_INVALID_SYMBOLS
         )
       );
@@ -649,6 +656,7 @@ class FileSystem {
     ) {
       throw new MessageException(
         Message::createMessage(
+          FALSE,
           Message::FM_DIR_NAME_CONTAINS_INVALID_SYMBOLS
         )
       );
@@ -684,6 +692,7 @@ class FileSystem {
     if ($mode === 'IF_EXISTS' && !$isDstPathExists) {
       throw new MessageException(
         Message::createMessage(
+          FALSE,
           Message::FM_NOT_ERROR_NOT_NEEDED_TO_UPDATE
         )
       );
@@ -698,7 +707,11 @@ class FileSystem {
 
     if (!$image) {
       throw new MessageException(
-        Message::createMessage(Message::IMAGE_PROCESS_ERROR)
+        FALSE,
+        Message::createMessage(
+          FALSE,
+          Message::IMAGE_PROCESS_ERROR
+        )
       );
     }
     imagesavealpha($image, TRUE);
@@ -791,7 +804,10 @@ class FileSystem {
     $mimeType = Utils::getMimeType($filePath);
     if ($mimeType == NULL) {
       throw new MessageException(
-        Message::createMessage(Message::FM_FILE_IS_NOT_IMAGE)
+        Message::createMessage(
+          FALSE,
+          Message::FM_FILE_IS_NOT_IMAGE
+        )
       );
     }
 
@@ -818,6 +834,7 @@ class FileSystem {
     if (!isset($request->files['file'])) {
       throw new MessageException(
         Message::createMessage(
+          FALSE,
           Message::FILES_NOT_SET
         )
       );
