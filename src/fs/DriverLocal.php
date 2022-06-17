@@ -259,10 +259,11 @@ class DriverLocal {
     $files = [];
     foreach ($rawFiles as $file) {
       if (is_file($file)) {
+        $filename = basename($file);
         $files[] = [
-          'name' => basename($file),
-          'mtime' => $this->lastModified($path . '/' . $file),
-          'size' => $this->size($path . '/' . $file),
+          'name' => $filename,
+          'mtime' => $this->lastModified($path . '/' . $filename),
+          'size' => $this->size($path . '/' . $filename),
         ];
       }
     }

@@ -93,8 +93,8 @@ class CachedFile {
       $info = $this->getInfo();
       if (
         $info == NULL ||
-        $info['mtime'] !== $this->fs->fsFileModifyTime(true, $this->fileAbsolute) ||
-        $info['size'] !== $this->fs->fsFileSize(true, $this->fileAbsolute)
+        $info['mtime'] !== $this->driverFiles->lastModified($this->fileRelative) ||
+        $info['size'] !== $this->driverFiles->size($this->fileRelative)
       ) {
         // Delete preview if it was changed, will be recreated below
         $this->driverCache->delete($cacheFilePreviewRelative);
