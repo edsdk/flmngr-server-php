@@ -86,19 +86,15 @@ class CachedFile {
     $this->driverCache->put($this->cacheFileJsonRelative, json_encode($info));
   }
 
-  function getPreview($width, $height, $contents) {
+  function getPreview($preview_width, $preview_height, $contents) {
     $cacheFilePreviewRelative = $this->cacheFileRelative . '.png';
 
     if ($this->driverCache->exists($cacheFilePreviewRelative)) {
-
       $info = $this->getInfo();
       if (
-        $info == NULL
-
-        // Amazon S3 is very slow here - 2 additional requests
-        // ||
-        //$info['mtime'] !== $this->fs->fsFileModifyTime(true, $this->fileAbsolute) ||
-        //$info['size'] !== $this->fs->fsFileSize(true, $this->fileAbsolute)
+        $info == NULL ||
+        $info['mtime'] !== $this->fs->fsFileModifyTime(true, $this->fileAbsolute) ||
+        $info['size'] !== $this->fs->fsFileSize(true, $this->fileAbsolute)
       ) {
         // Delete preview if it was changed, will be recreated below
         $this->driverCache->delete($cacheFilePreviewRelative);
@@ -119,68 +115,59 @@ class CachedFile {
 
       $original_width = imagesx($image);
       $original_height = imagesy($image);
-      if ($width === FALSE || $height === FALSE) {
+      if ($preview_width === FALSE || $preview_height === FALSE) {
         throw new MessageException(
           Message::createMessage(FALSE, Message::IMAGE_PROCESS_ERROR)
         );
       }
 
-      $ratio_original = $original_width / $original_height; // ratio original
+      $original_ratio = $original_width / $original_height;
 
-      if ($width == NULL) {
-        $width = floor($ratio_original * $height);
+      if ($preview_width == NULL) {
+        $preview_width = floor($original_ratio * $preview_height);
       }
       else {
-        if ($height == NULL) {
-          $height = floor((1 / $ratio_original) * $width);
+        if ($preview_height == NULL) {
+          $preview_height = floor((1 / $original_ratio) * $preview_width);
         }
       }
 
-      $ratio_thumb = $width / $height; // ratio thumb
+      $preview_ratio = $preview_width / $preview_height;
 
-      if ($ratio_original >= $ratio_thumb) {
-        $yo = $original_height;
-        $xo = ceil(($yo * $width) / $height);
-        $xo_ini = ceil(($original_width - $xo) / 2);
-        $xy_ini = 0;
+      if ($original_ratio >= $preview_ratio) {
+        $preview_height = $original_height * $preview_width / $original_width;
       }
       else {
-        $xo = $original_width;
-        $yo = ceil(($xo * $height) / $width);
-        $xy_ini = ceil(($original_height - $yo) / 2);
-        $xo_ini = 0;
+        $preview_width = $original_width * $preview_height / $original_height;
       }
 
-      $resizedImage = imagecreatetruecolor($width, $height);
+      $resizedImage = imagecreatetruecolor($preview_width, $preview_height);
 
       $colorGray1 = imagecolorallocate($resizedImage, 240, 240, 240);
       $colorGray2 = imagecolorallocate($resizedImage, 250, 250, 250);
       $rectSize = 20;
-      for ($x = 0; $x <= floor($width / $rectSize); $x++) {
-        for ($y = 0; $y <= floor($height / $rectSize); $y++) {
-          imagefilledrectangle($resizedImage, $x * $rectSize, $y * $rectSize, $width, $height, ($x + $y) % 2 == 0 ? $colorGray1 : $colorGray2);
+      for ($x = 0; $x <= floor($preview_width / $rectSize); $x++) {
+        for ($y = 0; $y <= floor($preview_height / $rectSize); $y++) {
+          imagefilledrectangle($resizedImage, $x * $rectSize, $y * $rectSize, $preview_width, $preview_height, ($x + $y) % 2 == 0 ? $colorGray1 : $colorGray2);
         }
       }
-
 
       imagecopyresampled(
         $resizedImage,
         $image,
         0,
         0,
-        $xo_ini,
-        $xy_ini,
-        $width,
-        $height,
-        $xo,
-        $yo
+        0,
+        0,
+        $preview_width,
+        $preview_height,
+        $original_width,
+        $original_height
       );
 
-      $i = strrpos($cacheFilePreviewRelative, '/');
-      $cacheDirPreviewRelative = substr($cacheFilePreviewRelative, 0, $i);
+      //$i = strrpos($cacheFilePreviewRelative, '/');
+      //$cacheDirPreviewRelative = substr($cacheFilePreviewRelative, 0, $i);
       // clearstatcache(TRUE, $cacheDirPreviewAbsolute);
-
-      $this->driverCache->makeRootDir();
 
       $imageContents = Utils::writeImageContents(Utils::getExt($cacheFilePreviewRelative), $resizedImage, 80);
 

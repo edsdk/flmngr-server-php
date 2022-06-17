@@ -304,6 +304,7 @@ class DriverLocal {
 
   // Put file contents
   function put($path, $contents) {
+    $this->makeDirectory(dirname($path)); // ensure dir exists
     file_put_contents($this->dir . $path, $contents);
   }
 
