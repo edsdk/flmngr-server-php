@@ -118,6 +118,9 @@ class FlmngrServer {
           header('Content-Type:' . $mimeType);
           fpassthru($data);
           die();
+        case 'filePreviewAndResolution':
+          $data = $fileSystem->reqGetImagePreviewAndResolution($request);
+          break;
         case 'uploadFile':
           $data = $fileSystem->reqUpload($request);
           break;

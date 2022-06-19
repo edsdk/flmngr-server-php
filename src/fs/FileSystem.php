@@ -130,6 +130,7 @@ class FileSystem {
           $imageInfo = Utils::getImageInfo($filePath);
           if ($this->embedPreviews === TRUE) {
             $preview = $this->getCachedImagePreview($filePath, NULL);
+            $preview[1] = $this->driverCache->get($preview[1]); // convert path to content
             $preview = "data:" . $preview[0] . ";base64," . base64_encode($preview[1]);
           }
 
@@ -410,6 +411,26 @@ class FileSystem {
     return $result;
   }
 
+  function reqGetImagePreviewAndResolution($request) {
+
+    $filePath = isset($request->get['f']) ? $request->get['f'] : $request->post['f'];
+    $width = isset($request->get['width']) ? $request->get['width'] :
+      (isset($request->post['width']) ? $request->post['width'] : NULL);
+    $height = isset($request->get['height']) ? $request->get['height'] :
+      (isset($request->post['height']) ? $request->post['height'] : NULL);
+
+    $filePath = $this->getRelativePath($filePath);
+    $previewAndResolution = $this->getCachedImagePreviewAndResolution($filePath, NULL);
+
+    $result = [
+      'width' => $previewAndResolution[1],
+      'height' => $previewAndResolution[2],
+      'preview' => $previewAndResolution[0] != NULL ? ("data:" . $previewAndResolution[0][0] . ";base64," . base64_encode($this->driverCache->get($previewAndResolution[0][1]))) : NULL,
+    ];
+
+    return $result;
+  }
+
   function reqCopyDir($request) {
     $dirPath = $request->post['d']; // full path
     $newPath = $request->post['n']; // full path
@@ -459,6 +480,22 @@ class FileSystem {
     $result = $this->getCachedFile($filePath)
       ->getPreview($this->PREVIEW_WIDTH, $this->PREVIEW_HEIGHT, $contents);
     $this->profile("getCachedImagePreview: " . $filePath, $start);
+    return $result;
+  }
+
+  function getCachedImagePreviewAndResolution($filePath, $contents) {
+    $start = microtime(TRUE);
+    $cachedFile = $this->getCachedFile($filePath);
+
+    $preview = $cachedFile->getPreview($this->PREVIEW_WIDTH, $this->PREVIEW_HEIGHT, $contents);
+    $info = $cachedFile->getInfo();
+
+    $result = [
+      $preview,
+      isset($info['width']) ? $info['width'] : NULL,
+      isset($info['height']) ? $info['height'] : NULL,
+    ];
+    $this->profile("getCachedImagePreviewAndResolution: " . $filePath, $start);
     return $result;
   }
 
