@@ -130,7 +130,7 @@ class FileSystem {
           $imageInfo = Utils::getImageInfo($filePath);
           if ($this->embedPreviews === TRUE) {
             $preview = $this->getCachedImagePreview($filePath, NULL);
-            $preview[1] = $this->driverCache->get($preview[1]); // convert path to content
+            $preview[1] = ($preview[2] === FALSE ? $this->driverFiles : $this->driverCache)->get($preview[1]); // convert path to content
             $preview = "data:" . $preview[0] . ";base64," . base64_encode($preview[1]);
           }
 
@@ -407,7 +407,7 @@ class FileSystem {
     $result = $this->getCachedImagePreview($filePath, NULL);
 
     // Convert path to contents
-    $result[1] = $this->driverCache->readStream($result[1]);
+    $result[1] = ($result[2] === FALSE ? $this->driverFiles : $this->driverCache)->readStream($result[1]);
     return $result;
   }
 
@@ -425,7 +425,7 @@ class FileSystem {
     $result = [
       'width' => $previewAndResolution[1],
       'height' => $previewAndResolution[2],
-      'preview' => $previewAndResolution[0] != NULL ? ("data:" . $previewAndResolution[0][0] . ";base64," . base64_encode($this->driverCache->get($previewAndResolution[0][1]))) : NULL,
+      'preview' => $previewAndResolution[0] != NULL ? ("data:" . $previewAndResolution[0][0] . ";base64," . base64_encode(($previewAndResolution[0][2] === FALSE ? $this->driverFiles : $this->driverCache)->get($previewAndResolution[0][1]))) : NULL,
     ];
 
     return $result;

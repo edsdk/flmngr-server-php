@@ -103,6 +103,11 @@ class CachedFile {
 
     $resizedImage = NULL;
     if (!$this->driverCache->exists($cacheFilePreviewRelative)) {
+
+      if (Utils::getMimeType($this->fileRelative) === 'image/svg+xml') {
+          return ['image/svg+xml', $this->fileRelative, FALSE]; // FALSE means from files folder
+      }
+
       if ($contents === NULL) {
         $contents = $this->driverFiles->get($this->fileRelative);
       }
@@ -218,7 +223,7 @@ class CachedFile {
       }
     }
 
-    return ['image/png', $cacheFilePreviewRelative];
+    return ['image/png', $cacheFilePreviewRelative, TRUE]; // TRUE means from cache folder
   }
 
 }
