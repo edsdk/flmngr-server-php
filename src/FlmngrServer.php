@@ -9,6 +9,8 @@
 
 namespace EdSDK\FlmngrServer;
 
+use EdSDK\FlmngrServer\fs\FileSystem;
+use EdSDK\FlmngrServer\lib\CommonRequest;
 use EdSDK\FlmngrServer\resp\Response;
 use Exception;
 
@@ -37,9 +39,15 @@ class FlmngrServer {
 
     try {
 
-      $frontController = new FlmngrFrontController($config);
-      $request = $frontController->request;
-      $fileSystem = $frontController->filesystem;
+      if (isset($config['request'])) {
+        $request = $config['request'];
+      }
+      else {
+        $request = new CommonRequest();
+      }
+      $request->parseRequest();
+
+      $fileSystem = new FileSystem($config);
 
       if (FlmngrServer::checkUploadLimit($request)) {
         return;
