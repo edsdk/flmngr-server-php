@@ -75,7 +75,10 @@ class CachedFile {
                 $size = @getimagesize($this->fileAbsolute);
 
                 if ($size == FALSE) {
-                    error_log("Unable to get size in file " . $this->cacheFileJsonAbsolute);
+
+                    if (substr(strtolower($this->fileAbsolute), -strlen(".svg")) !== ".svg")
+                      error_log("Unable to get size in file " . $this->cacheFileJsonAbsolute);
+
                     return NULL;
                 }
 
@@ -164,7 +167,7 @@ class CachedFile {
                     $image = @imagecreatefromwebp($this->fileAbsolute);
                     break;
                 case 'image/svg+xml':
-                    return ['image/svg+xml', fopen($this->fileAbsolute, 'rb')];
+                    return ['image/svg+xml', $this->fileAbsolute];
             }
 
             // Somewhy it can not read ONLY SOME JPEG files, we've caught it on Windows + IIS + PHP

@@ -39,6 +39,7 @@ class Uploader
         try {
             $resp = $action->run($req);
         } catch (MessageException $e) {
+            error_log($e);
             $resp = new RespFail($e->getFailMessage());
         }
 

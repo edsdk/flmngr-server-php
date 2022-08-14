@@ -47,19 +47,26 @@ abstract class AFile
 
         $data->sizes = [];
         if ($data->isImage) {
-            $data->width = $this->getImageWidth();
-            $data->height = $this->getImageHeight();
 
-            if ($data->isCommited) {
-                if ($this->m_mainFile === null) {
-                    // m_mainFile is property of FileCommited
-                    $modifications = $this->getModifications();
-                    for ($i = 0; $i < count($modifications); $i++) {
-                        $data->sizes[
-                            $modifications[$i]->getModificationName()
-                        ] = $modifications[$i]->getData();
-                    }
+            try {
+              $data->width = $this->getImageWidth();
+              $data->height = $this->getImageHeight();
+            } catch (Exception $e) {
+              // ok, this is SVG
+            }
+
+            if (isset($data->width) && isset($data->height)) {
+
+              if ($data->isCommited) {
+                if ($this->m_mainFile === NULL) {
+                  // m_mainFile is property of FileCommited
+                  $modifications = $this->getModifications();
+                  for ($i = 0; $i < count($modifications); $i++) {
+                    $data->sizes[$modifications[$i]->getModificationName()] = $modifications[$i]->getData();
+                  }
                 }
+              }
+
             }
         }
         return $data;
