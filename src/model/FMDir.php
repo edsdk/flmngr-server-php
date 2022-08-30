@@ -21,11 +21,14 @@ class FMDir {
 
   public $p; // property exists in PHP version only, for JSON generation
 
-  function __construct($name, $path) {
+  public $filled; // false if its children were not listed (dynamic listing is used and this is the last level dir)
+
+  function __construct($name, $path, $filled) {
     $this->path = $path;
     $this->name = $name;
     $this->f = 0; // legacy
     $this->d = 0; // legacy
+    $this->filled = $filled;
 
     $this->p =
       (strlen($this->path) > 0 ? '/' . $this->path : '') .

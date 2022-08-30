@@ -163,9 +163,9 @@ class DriverLocal {
 
   const MAX_DEPTH = 20;
 
-  function allDirectories() {
+  function allDirectories($dirFrom, $maxDepth) {
     $dirs = [];
-    $fDir = $this->dir;
+    $fDir = $this->dir . $dirFrom;
 
     if (!file_exists($fDir) || !is_dir($fDir)) {
       error_log("Root directory does not exist: " . $fDir);
@@ -178,11 +178,16 @@ class DriverLocal {
     }
     $hideDirs[] = '.cache';
 
-    $this->getDirs__fill($dirs, $fDir, $hideDirs, '', 0);
+    $path = '';
+    if ($dirFrom != '') {
+      $path = rtrim(basename($this->dir) . '/' . rtrim(dirname($dirFrom), '/'), '/');
+    }
+    $this->getDirs__fill($dirs, $fDir, $hideDirs, $path, 0, $maxDepth);
+
     return $dirs;
   }
 
-  private function getDirs__fill(&$dirs, $fDir, $hideDirs, $path, $currDepth) {
+  private function getDirs__fill(&$dirs, $fDir, $hideDirs, $path, $currDepth, $maxDepth) {
     $i = strrpos($fDir, '/');
     if ($i !== FALSE) {
       $dirName = substr($fDir, $i + 1);
@@ -211,13 +216,14 @@ class DriverLocal {
         $isHide = $isHide || fnmatch($hideDirs[$j], $dir);
       }
 
-      if (is_dir($fDir . '/' . $dir) && !$isHide && $currDepth < self::MAX_DEPTH) {
+      if (is_dir($fDir . '/' . $dir) && !$isHide && $currDepth < min($maxDepth, self::MAX_DEPTH)) {
         $this->getDirs__fill(
           $dirs,
           $fDir . '/' . $dir,
           $hideDirs,
           $path . (strlen($path) > 0 ? '/' : '') . $dirName,
-          $currDepth + 1
+          $currDepth + 1,
+          $maxDepth
         );
       }
     }

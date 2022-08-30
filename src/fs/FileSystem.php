@@ -74,6 +74,24 @@ class FileSystem {
   function reqGetDirs($request) {
     $hideDirs = isset($request->post['hideDirs']) ? $request->post['hideDirs'] : [];
 
+    // It's allowed to send with first slash or without it (equivalent forms).
+    // The same is for trailing slash
+    $dirFrom = isset($request->post['fromDir']) ? $request->post['fromDir'] : '';
+    $dirFrom = '/' . trim($dirFrom, '/');
+    if ($dirFrom === '/')
+      $dirFrom = '';
+    if (strpos($dirFrom, '..') !== FALSE) {
+      throw new MessageException(
+        Message::createMessage(
+          FALSE,
+          Message::FM_DIR_NAME_CONTAINS_INVALID_SYMBOLS
+        )
+      );
+    }
+
+    // 0 means get dirs from $dirFrom only
+    $maxDepth = isset($request->post['maxDepth']) ? $request->post['maxDepth'] : 99;
+
     $dirs = [];
     $hideDirs[] = '.cache';
 
@@ -83,13 +101,12 @@ class FileSystem {
     if ($i !== FALSE) {
       $dirRoot = substr($dirRoot, $i + 1);
     }
+    $dirRoot .= $dirFrom;
 
     $addFilesPrefix = $dirRoot === "";
 
-    $dirs[] = new FMDir($addFilesPrefix ? 'Files' : $dirRoot, '');
-
     // A flat list of child directories
-    $dirsStr = $this->driverFiles->allDirectories();
+    $dirsStr = $this->driverFiles->allDirectories($dirFrom, $maxDepth);
 
     // Add files
     foreach ($dirsStr as $dirStr) {
@@ -97,9 +114,11 @@ class FileSystem {
       if ($addFilesPrefix) {
         array_unshift($dirArr, "Files");
       }
+      $filled = count($dirArr) <= $maxDepth + 1;
       $dirs[] = new FMDir(
         $dirArr[count($dirArr) - 1],
-        join('/', array_splice($dirArr, 0, count($dirArr) - 1))
+        join('/', array_splice($dirArr, 0, count($dirArr) - 1)),
+        $filled
       );
     }
 
