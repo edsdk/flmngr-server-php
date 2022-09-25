@@ -140,10 +140,10 @@ class CachedFile {
       $preview_ratio = $preview_width / $preview_height;
 
       if ($original_ratio >= $preview_ratio) {
-        $preview_height = $original_height * $preview_width / $original_width;
+        $preview_height = floor($original_height * $preview_width / $original_width);
       }
       else {
-        $preview_width = $original_width * $preview_height / $original_height;
+        $preview_width = floor($original_width * $preview_height / $original_height);
       }
 
       $resizedImage = imagecreatetruecolor($preview_width, $preview_height);
