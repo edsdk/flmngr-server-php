@@ -55,6 +55,7 @@ class FlmngrServer {
       }
       if ($codec !== 0) {
         FlmngrServer::decodeRequest($request, $codec);
+        error_log(print_r($request, true));
       }
 
       $fileSystem = new FileSystem($config);
@@ -171,7 +172,7 @@ class FlmngrServer {
         if ($key !== 'codec') {
           if (is_array($value)) {
             for ($i=0; $i<count($value); $i++) {
-              $value[$i] = base64_decode('' . $value[$i]);
+              $request->post[$key][$i] = base64_decode('' . $request->post[$key][$i]);
             }
           } else {
             $request->post[$key] = base64_decode('' . $value);
@@ -182,7 +183,7 @@ class FlmngrServer {
         if ($key !== 'codec') {
           if (is_array($value)) {
             for ($i=0; $i<count($value); $i++) {
-              $value[$i] = base64_decode('' . $value[$i]);
+              $request->get[$key][$i] = base64_decode('' . $request->get[$key][$i]);
             }
           } else {
             $request->get[$key] = base64_decode('' . $value);
