@@ -47,6 +47,16 @@ class FlmngrServer {
       }
       $request->parseRequest();
 
+      $codec = 0;
+      if (isset($request->post['codec'])) {
+        $codec = $request->post['codec'];
+      } else if (isset($request->get['codec'])) {
+        $codec = $request->get['codec'];
+      }
+      if ($codec !== 0) {
+        FlmngrServer::decodeRequest($request, $codec);
+      }
+
       $fileSystem = new FileSystem($config);
 
       if (FlmngrServer::checkUploadLimit($request)) {
@@ -152,6 +162,36 @@ class FlmngrServer {
     } catch (Exception $e) {
       error_log($e);
     }
+  }
+
+  private static function decodeRequest($request, $codec) {
+    if ($codec == 1) {
+      // Base 64 values
+      foreach($request->post as $key => $value) {
+        if ($key !== 'codec') {
+          if (is_array($value)) {
+            for ($i=0; $i<count($value); $i++) {
+              $value[$i] = base64_decode('' . $value[$i]);
+            }
+          } else {
+            $request->post[$key] = base64_decode('' . $value);
+          }
+        }
+      }
+      foreach($request->get as $key => $value) {
+        if ($key !== 'codec') {
+          if (is_array($value)) {
+            for ($i=0; $i<count($value); $i++) {
+              $value[$i] = base64_decode('' . $value[$i]);
+            }
+          } else {
+            $request->get[$key] = base64_decode('' . $value);
+          }
+        }
+      }
+      return; // OK
+    }
+    throw new Exception('Unknown codec = ' . $codec . ' received from the client. You need to update the server side or check did you set Flmngr.codec correctly.');
   }
 
   private static function iniGetBytes($val) {
