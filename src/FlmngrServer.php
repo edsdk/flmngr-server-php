@@ -45,7 +45,11 @@ class FlmngrServer {
       else {
         $request = new CommonRequest();
       }
-      $request->parseRequest();
+
+      // Manually set (already parsed) array could be passed
+      if (method_exists($request, "parseRequest")) {
+        $request->parseRequest();
+      }
 
       $codec = 0;
       if (isset($request->post['codec'])) {

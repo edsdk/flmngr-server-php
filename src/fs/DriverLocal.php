@@ -20,6 +20,8 @@ class DriverLocal {
   // Access it only by getCacheChunk() and write by setCacheChunk()
   private $cacheChunks = [];
 
+  protected $clearCacheChunks = [];
+
   // For use by FileSystem.php only, do not override
   public function setDriverCache($driverCache) {
     $this->driverCache = $driverCache;
@@ -27,6 +29,10 @@ class DriverLocal {
 
   function __construct($config, $isCacheDriver = FALSE) {
     $this->isCacheDriver = $isCacheDriver;
+
+    if (isset($config['clearCacheChunks'])) {
+      $this->clearCacheChunks = $config['clearCacheChunks'];
+    }
 
     if (!in_array('dir', array_keys($config)) || $config['dir'] === NULL) {
       try {
@@ -82,12 +88,17 @@ class DriverLocal {
     }
 
     $chunkPath = $this->getCacheChunkPath($chunkName);
-    if ($this->driverCache->fileExists($chunkPath) && time() - $this->driverCache->lastModified($chunkPath) <= $validSeconds) {
+    if (
+      $this->driverCache->fileExists($chunkPath) &&
+      time() - $this->driverCache->lastModified($chunkPath) <= $validSeconds &&
+      !in_array($chunkName, $this->clearCacheChunks)
+    ) {
       $content = $this->driverCache->get($chunkPath);
       $json = json_decode($content, JSON_OBJECT_AS_ARRAY);
       return $json;
-    }
-    else {
+    } else {
+      if (in_array($chunkName, $this->clearCacheChunks))
+        error_log("Forced invalidating cache chunk");
       $null = NULL;
       return $null;
     }
