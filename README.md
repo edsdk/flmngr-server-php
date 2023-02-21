@@ -39,7 +39,7 @@ Do not forget to create directories you point to and set correct permissions (re
 
 If you want to allow access to uploaded files (usually you do) please do not forget to open access to files directory.
 
-Please also see [example of usage](https://packagist.org/packages/edsdk/flmngr-example-php) Flmngr with ImgPen for editing and uploading images.
+Please also see [example of usage](https://flmngr.com/doc/open-file-manager) Flmngr with ImgPen for editing and uploading images.
 
 
 ## Server languages support
@@ -55,7 +55,11 @@ Another backends are also available:
 
 ## See Also
 
-- [N1ED](https://n1ed.com) - Flmngr server perfectly works with #1 free HTML WYSIWYG Editor which can be installed on your website (any CMS).  
+- [Flmngr](https://flmngr.com) - Flmngr file manager.
+- [Flmngr demo](https://flmngr.com/doc/open-file-manager) - Flmngr file manager demo.
+- [Flmngr API](https://flmngr.com/doc/api) - API of Flmngr client.
+- [Flmngr Composer docs](https://flmngr.com/doc/install-php-file-manager-composer) - more info about this package.
+- [N1ED](https://n1ed.com) - WYSIWYG editor with Flmngr file manager aboard, also works as a plugin for CKEditor 4, TinyMCE, has modules for different CMSs.  
 
 
 ## License
