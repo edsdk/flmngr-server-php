@@ -12,6 +12,8 @@ abstract class IFmRequest {
 
   public $requestMethod;
 
+  public $config;
+
   abstract public function parseRequest();
 
   public function __construct($config = NULL) {
