@@ -883,7 +883,9 @@ class FileSystem {
   }
 
   public function reqUpload($request) {
-    $dir = isset($request->post['dir']) ? $request->post['dir'] : '/' . $this->driverFiles->getRootDirName();
+
+    $dir = isset($request->post['dir']) ? $request->post['dir'] : '/';
+    $dir = $this->getRelativePath('/' . $this->driverFiles->getRootDirName() . $dir);
 
     $isOverwrite = isset($request->post['mode']) && $request->post['mode'] === "OVERWRITE";
 

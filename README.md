@@ -4,6 +4,7 @@
 
 Use Flmngr file manager to upload and manage files and images on your website. Works great together with [ImgPen](https://imgpen.com) which adds feature to edit images right from file manager.
 
+Can be a standalone file manager (React/Angular/etc. or custom JavaScript or TypeScript integrations) or work together with CKEditor 4, CKEditor 5, [N1ED](https://n1ed.com) or any other JS components.
 
 ## Install
 
@@ -21,16 +22,17 @@ To handle some URL you want in your web application, create a file which will be
 ```php
 <?php
 
-    require __DIR__ . '/vendor/autoload.php';
-        
-    use EdSDK\FlmngrServer\FlmngrServer;
+    \EdSDK\FlmngrServer\FlmngrServer::flmngrRequest(
+        array(
+            // Directory of your files storage
+            'dirFiles' => '/var/www/files',
     
-    // Uncomment line below to enable CORS if your request domain and server domain are different
-    // header('Access-Control-Allow-Origin: *');
-    
-    echo FlmngrServer::flmngrRequest([
-        'dirFiles' => __DIR__ . '/files',
-    ]);
+            // Optionally: if you wish to use separate directory for cache files
+            // This is handy when your "dirFiles" is slower a local disk,
+            // for example this is a drive mounted over a network.
+            //'dirCache' => '/var/www/cache'
+        )
+    );
 ```
 
 This file `flmngr.php` should be placed on the same level with `vendor` directory. If can be placed in some other place too, but do not forget to change path in `require` call.
@@ -44,14 +46,7 @@ Please also see [example of usage](https://flmngr.com/doc/open-file-manager) Flm
 
 ## Server languages support
 
-Current package is targeted to serve uploads inside PHP environment.
-
-Another backends are also available:
-
-- Node (TypeScript/JavaScript)
-- PHP
-- Java
-
+Current package is targeted to serve uploads inside PHP environment of any version.
 
 ## See Also
 

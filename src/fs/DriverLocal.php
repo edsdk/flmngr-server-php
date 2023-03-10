@@ -453,8 +453,14 @@ class DriverLocal {
 
     $name = $this->uploadFile__getName($file, $dir, $isOverwrite);
 
-    $result = move_uploaded_file($file['tmp_name'], $this->dir . $dir . '/' . $name);
+    $dirDst = $this->dir . $dir;
+    if (!file_exists($dirDst)) {
+      mkdir($dirDst, 0777, true);
+    }
+
+    $result = move_uploaded_file($file['tmp_name'], $dirDst. '/' . $name);
     if (!$result) {
+      error_log("Unable to upload file " + $file['tmp_name'] + " to " + $dir . '/' . $file['name']);
       throw new MessageException(
         Message::createMessage(
           $this->isCacheDriver,
