@@ -145,6 +145,7 @@ class FlmngrServer {
           $data = $fileSystem->reqGetImagePreviewAndResolution($request);
           break;
         case 'uploadFile':
+        case 'upload':
           $data = $fileSystem->reqUpload($request);
           break;
         case 'getVersion':
