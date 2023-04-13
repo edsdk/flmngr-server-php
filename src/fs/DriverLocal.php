@@ -5,6 +5,7 @@ namespace EdSDK\FlmngrServer\fs;
 use EdSDK\FlmngrServer\model\Message;
 use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\MessageException;
+use Mockery\Exception;
 
 class DriverLocal {
 
@@ -318,6 +319,15 @@ class DriverLocal {
   // Get file contents
   function get($path) {
     return file_get_contents($this->dir . $path);
+  }
+
+  function getExifOrientation($path) {
+      if (function_exists('exif_read_data')) {
+        $exif = @exif_read_data($this->dir . $path);
+        return (isset($exif) && isset($exif['Orientation'])) ? $exif['Orientation'] : 0;
+      } else {
+        return 0;
+      }
   }
 
   // Put file contents

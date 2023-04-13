@@ -118,6 +118,15 @@ class CachedFile {
         );
       }
 
+      $orientation = $this->driverFiles->getExifOrientation($this->fileRelative);
+      if ($orientation === 3) {
+        $image = imagerotate($image, 180, 0);
+      } else if ($orientation === 6) {
+        $image = imagerotate($image, -90, 0);
+      } else if ($orientation === 8) {
+        $image = imagerotate($image, 90, 0);
+      }
+
       $original_width = imagesx($image);
       $original_height = imagesy($image);
       if ($preview_width === FALSE || $preview_height === FALSE) {
