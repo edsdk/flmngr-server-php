@@ -772,6 +772,15 @@ class FileSystem {
     }
     imagesavealpha($image, TRUE);
 
+    $orientation = $this->driverFiles->getExifOrientation($filePath);
+    if ($orientation === 3) {
+      $image = imagerotate($image, 180, 0);
+    } else if ($orientation === 6) {
+      $image = imagerotate($image, -90, 0);
+    } else if ($orientation === 8) {
+      $image = imagerotate($image, 90, 0);
+    }
+
     $this->getCachedImagePreview($filePath, $contents); // to force writing image/width into cache file
     $imageInfo = $this->getCachedImageInfo($filePath);
 
