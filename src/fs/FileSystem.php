@@ -772,6 +772,17 @@ class FileSystem {
     }
     imagesavealpha($image, TRUE);
 
+    if (function_exists('exif_read_data')) {
+        $exif = exif_read_data($image);
+        if ($exif['Orientation'] == 3) {
+            $image = imagerotate($image, 180, 0);
+        } else if ($exif['Orientation'] == 6) {
+            $image = imagerotate($image, -90, 0);
+        } else if ($exif['Orientation'] == 8) {
+            $image = imagerotate($image, 90, 0);
+        }
+    }
+
     $this->getCachedImagePreview($filePath, $contents); // to force writing image/width into cache file
     $imageInfo = $this->getCachedImageInfo($filePath);
 

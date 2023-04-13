@@ -21,6 +21,7 @@
     "require": {
         "ext-gd": "*",
         "ext-curl": "*",
-        "ext-json": "*"
+        "ext-json": "*",
+        "ext-exif": "*"
     }
 }
