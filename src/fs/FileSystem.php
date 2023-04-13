@@ -262,7 +262,7 @@ class FileSystem {
 
         $isMatch = FALSE;
         foreach ($whiteList as $mask) {
-          if (fnmatch($mask, $file) === TRUE) {
+          if (fnmatch($mask, $file, FNM_CASEFOLD) === TRUE) {
             $isMatch = TRUE;
           }
         }
@@ -285,7 +285,7 @@ class FileSystem {
 
       $isMatch = FALSE;
       foreach ($blackList as $mask) {
-        if (fnmatch($mask, $file) === TRUE) {
+        if (fnmatch($mask, $file, FNM_CASEFOLD) === TRUE) {
           $isMatch = TRUE;
         }
       }
