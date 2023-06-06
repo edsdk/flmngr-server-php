@@ -1,5 +1,23 @@
 <?php
 
+/**
+ *
+ * Flmngr server package for PHP.
+ *
+ * This file is a part of the server side implementation of Flmngr -
+ * the JavaScript/TypeScript file manager widely used for building apps and editors.
+ *
+ * Comes as a standalone package for custom integrations,
+ * and as a part of N1ED web content builder.
+ *
+ * Flmngr file manager:       https://flmngr.com
+ * N1ED web content builder:  https://n1ed.com
+ * Developer website:         https://edsdk.com
+ *
+ * License: GNU General Public License Version 3 or later
+ *
+ **/
+
 namespace EdSDK\FlmngrServer\fs;
 
 use EdSDK\FlmngrServer\model\Message;
@@ -129,7 +147,7 @@ class CachedFile {
 
       $original_width = imagesx($image);
       $original_height = imagesy($image);
-      if ($preview_width === FALSE || $preview_height === FALSE) {
+      if ($original_width == FALSE || $original_height == FALSE) {
         throw new MessageException(
           Message::createMessage(FALSE, Message::IMAGE_PROCESS_ERROR)
         );
@@ -196,40 +214,37 @@ class CachedFile {
       }
     }
 
-    // Update BlurHash if required
-    if (!isset($cachedImageInfo["blurHash"])) {
+    // Update BlurHash
+    if ($resizedImage == NULL) {
+      $resizedImage = @imagecreatefromstring($this->driverCache->get($cacheFilePreviewRelative));
+    }
 
-      if ($resizedImage == NULL) {
-        $resizedImage = @imagecreatefromstring($this->driverCache->get($cacheFilePreviewRelative));
+    $pixels = [];
+    $xxCache = imagesx($resizedImage);
+    $yyCache = imagesy($resizedImage);
+    for ($y = 0; $y < $yyCache; $y++) {
+      $row = [];
+      for ($x = 0; $x < $xxCache; $x++) {
+        $index = imagecolorat($resizedImage, $x, $y);
+        $colors = imagecolorsforindex($resizedImage, $index);
+        $row[] = [$colors['red'], $colors['green'], $colors['blue']];
       }
+      $pixels[] = $row;
+    }
 
-      $pixels = [];
-      $xxCache = imagesx($resizedImage);
-      $yyCache = imagesy($resizedImage);
-      for ($y = 0; $y < $yyCache; $y++) {
-        $row = [];
-        for ($x = 0; $x < $xxCache; $x++) {
-          $index = imagecolorat($resizedImage, $x, $y);
-          $colors = imagecolorsforindex($resizedImage, $index);
-          $row[] = [$colors['red'], $colors['green'], $colors['blue']];
-        }
-        $pixels[] = $row;
+    $components_x = 4;
+    $components_y = 3;
+
+    $cachedImageInfo = $this->getInfo();
+    if (count($pixels) > 0) {
+      $cachedImageInfo["blurHash"] = Blurhash::encode($pixels, $components_x, $components_y);
+      if (isset($original_width)) {
+        $cachedImageInfo["width"] = $original_width;
       }
-
-      $components_x = 4;
-      $components_y = 3;
-
-      $cachedImageInfo = $this->getInfo();
-      if (count($pixels) > 0) {
-        $cachedImageInfo["blurHash"] = Blurhash::encode($pixels, $components_x, $components_y);
-        if (isset($original_width)) {
-          $cachedImageInfo["width"] = $original_width;
-        }
-        if (isset($original_height)) {
-          $cachedImageInfo["height"] = $original_height;
-        }
-        $this->writeInfo($cachedImageInfo);
+      if (isset($original_height)) {
+        $cachedImageInfo["height"] = $original_height;
       }
+      $this->writeInfo($cachedImageInfo);
     }
 
     return ['image/png', $cacheFilePreviewRelative, TRUE]; // TRUE means from cache folder

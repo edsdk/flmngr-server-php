@@ -1,5 +1,23 @@
 <?php
 
+/**
+ *
+ * Flmngr server package for PHP.
+ *
+ * This file is a part of the server side implementation of Flmngr -
+ * the JavaScript/TypeScript file manager widely used for building apps and editors.
+ *
+ * Comes as a standalone package for custom integrations,
+ * and as a part of N1ED web content builder.
+ *
+ * Flmngr file manager:       https://flmngr.com
+ * N1ED web content builder:  https://n1ed.com
+ * Developer website:         https://edsdk.com
+ *
+ * License: GNU General Public License Version 3 or later
+ *
+ **/
+
 namespace EdSDK\FlmngrServer\fs;
 
 use EdSDK\FlmngrServer\model\Message;
@@ -215,7 +233,8 @@ class DriverLocal {
       throw new MessageException(
         Message::createMessage(
           $this->isCacheDriver,
-          Message::FM_UNABLE_TO_LIST_CHILDREN_IN_DIRECTORY
+          Message::FM_UNABLE_TO_LIST_CHILDREN_IN_DIRECTORY,
+          $path
         )
       );
     }
@@ -249,7 +268,7 @@ class DriverLocal {
       throw new MessageException(
         Message::createMessage(
           $this->isCacheDriver,
-          Message::DIR_DOES_NOT_EXIST,
+          Message::FM_UNABLE_TO_LIST_CHILDREN_IN_DIRECTORY,
           $path
         )
       );
@@ -269,7 +288,8 @@ class DriverLocal {
       throw new MessageException(
         Message::createMessage(
           $this->isCacheDriver,
-          Message::FM_DIR_CANNOT_BE_READ
+          Message::FM_UNABLE_TO_LIST_CHILDREN_IN_DIRECTORY,
+          $path
         )
       );
     }
@@ -470,7 +490,7 @@ class DriverLocal {
 
     $result = move_uploaded_file($file['tmp_name'], $dirDst. '/' . $name);
     if (!$result) {
-      error_log("Unable to upload file " + $file['tmp_name'] + " to " + $dir . '/' . $file['name']);
+      error_log("Unable to upload file " . $file['tmp_name'] . " to " . $dir . '/' . $file['name']);
       throw new MessageException(
         Message::createMessage(
           $this->isCacheDriver,

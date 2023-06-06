@@ -1,10 +1,21 @@
 <?php
 
 /**
- * Flmngr Server package
- * Developer: N1ED
- * Website: https://n1ed.com/
+ *
+ * Flmngr server package for PHP.
+ *
+ * This file is a part of the server side implementation of Flmngr -
+ * the JavaScript/TypeScript file manager widely used for building apps and editors.
+ *
+ * Comes as a standalone package for custom integrations,
+ * and as a part of N1ED web content builder.
+ *
+ * Flmngr file manager:       https://flmngr.com
+ * N1ED web content builder:  https://n1ed.com
+ * Developer website:         https://edsdk.com
+ *
  * License: GNU General Public License Version 3 or later
+ *
  **/
 
 namespace EdSDK\FlmngrServer\fs;
@@ -21,8 +32,6 @@ class FileSystem {
   private $driverFiles;
 
   private $driverCache;
-
-  public $embedPreviews = FALSE;
 
   function __construct($config) {
     $dirFiles = in_array('dirFiles', array_keys($config)) ? $config['dirFiles'] : NULL; // NULL will cause exception later
@@ -179,6 +188,7 @@ class FileSystem {
   public function reqGetFilesPaged($request) {
     $dirPath = $request->post['dir'];
     $maxFiles = $request->post['maxFiles'];
+    $alwaysInclude = isset($request->post['alwaysInclude']) ? $request->post['alwaysInclude'] : []; // does not affect to filters, only for paged files
     $lastFile = isset($request->post['lastFile']) ? $request->post['lastFile'] : NULL;
     $lastIndex = isset($request->post['lastIndex']) ? $request->post['lastIndex'] : NULL;
     $whiteList = isset($request->post['whiteList']) ? $request->post['whiteList'] : [];
@@ -212,7 +222,7 @@ class FileSystem {
         for ($i = 0; $i < count($formatIds); $i++) {
           $isFormatFile = Utils::endsWith($name, $formatSuffixes[$i]);
           if ($isFormatFile) {
-            $format = $formatSuffixes[$i];
+            $format = $formatIds[$i];
             $name = substr($name, 0, -strlen($formatSuffixes[$i]));
             break;
           }
@@ -300,6 +310,8 @@ class FileSystem {
       }
     }
 
+    $countTotal = count($files);
+
     $now = $this->profile("Black list", $now);
 
     // Remove files not matching the filter, and their formats too
@@ -315,6 +327,8 @@ class FileSystem {
         }
       }
     }
+
+    $countFiltered = count($files);
 
     $now = $this->profile("Filter", $now);
 
@@ -360,12 +374,28 @@ class FileSystem {
     }
 
     $isEnd = $startIndex + $maxFiles >= count($fileNames); // are there any files after current page?
+
+    // $fileNames = array_slice($fileNames, $startIndex, $maxFiles);
+    // Do the same, but respecting "alwaysInclude":
+    for ($i=count($alwaysInclude)-1; $i>=0; $i--) {
+        $index = array_search($alwaysInclude[$i], $fileNames);
+        if ($index === FALSE) {
+            // Remove unexisting items from "alwaysInclude"
+            array_splice($alwaysInclude, $i, 1);
+        } else {
+            // And existing items from "fileNames"
+            array_splice($fileNames, $index, 1);
+        }
+    }
+    // Get a page
     $fileNames = array_slice($fileNames, $startIndex, $maxFiles);
+    // Add to the start of the page all "alwaysInclude" files
+    for ($i=count($alwaysInclude)-1; $i>=0; $i--)
+        array_unshift($fileNames, $alwaysInclude[$i]);
 
     $now = $this->profile("Page slice", $now);
 
     $resultFiles = [];
-
 
     // Create result file list for output,
     // attach image attributes and image formats for image files.
@@ -391,6 +421,8 @@ class FileSystem {
 
     return [
       'files' => $resultFiles,
+      'countTotal' => $countTotal,
+      'countFiltered' => $countFiltered,
       'isEnd' => $isEnd,
     ];
   }
@@ -417,10 +449,10 @@ class FileSystem {
 
   function reqGetImagePreview($request) {
     $filePath = isset($request->get['f']) ? $request->get['f'] : $request->post['f'];
-    $width = isset($request->get['width']) ? $request->get['width'] :
-      (isset($request->post['width']) ? $request->post['width'] : NULL);
-    $height = isset($request->get['height']) ? $request->get['height'] :
-      (isset($request->post['height']) ? $request->post['height'] : NULL);
+    //$width = isset($request->get['width']) ? $request->get['width'] :
+    //  (isset($request->post['width']) ? $request->post['width'] : NULL);
+    //$height = isset($request->get['height']) ? $request->get['height'] :
+    //  (isset($request->post['height']) ? $request->post['height'] : NULL);
 
     $filePath = $this->getRelativePath($filePath);
     $result = $this->getCachedImagePreview($filePath, NULL);
@@ -523,6 +555,16 @@ class FileSystem {
     $name = $request->post['n'];
 
     $dirPath = $this->getRelativePath($dirPath);
+
+    if ($name === "") {
+        throw new MessageException(
+            Message::createMessage(
+                FALSE,
+                Message::MALFORMED_REQUEST
+            )
+        );
+    }
+
     if (strpos($name, '/') !== FALSE) {
       throw new MessageException(
         Message::createMessage(
@@ -549,16 +591,7 @@ class FileSystem {
     $path = $this->getRelativePath($path);
     $newPath = $this->getRelativePath($newPath);
 
-    try {
-      $this->driverFiles->move($path, $newPath . '/' . basename($path));
-    } catch (Exception $e) {
-      throw new MessageException(
-        Message::createMessage(
-          FALSE,
-          Message::FM_ERROR_ON_MOVING_FILES
-        )
-      );
-    }
+    $this->driverFiles->move($path, $newPath . '/' . basename($path));
   }
 
   function reqRename($request) {
@@ -601,10 +634,9 @@ class FileSystem {
     $fullPaths = [];
 
     $index = strrpos($filePath, '.');
-    if ($index > -1) {
+    if ($index !== FALSE) {
       $fullPathPrefix = substr($filePath, 0, $index);
-    }
-    else {
+    } else {
       $fullPathPrefix = $filePath;
     }
     if (isset($formatSuffixes) && is_array($formatSuffixes)) {
@@ -884,6 +916,7 @@ class FileSystem {
   function reqGetVersion($request) {
     return [
       'version' => '5',
+      'build' => '8',
       'language' => 'php',
       'storage' => $this->driverFiles->getDriverName(),
       'dirFiles' => $this->driverFiles->getDir(),
