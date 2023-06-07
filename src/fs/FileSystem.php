@@ -36,6 +36,8 @@ class FileSystem {
   function __construct($config) {
     $dirFiles = in_array('dirFiles', array_keys($config)) ? $config['dirFiles'] : NULL; // NULL will cause exception later
     $dirCache = in_array('dirCache', array_keys($config)) ? $config['dirCache'] : ($dirFiles === NULL ? NULL : $dirFiles . '/.cache');
+    $dirFiles = str_replace("\\", "/", $dirFiles);
+    $dirCache = str_replace("\\", "/", $dirCache);
     $this->driverFiles = in_array('driverFiles', array_keys($config)) ? $config['driverFiles'] : new DriverLocal(['dir' => $dirFiles]);
     $this->driverCache = in_array('driverCache', array_keys($config)) ? $config['driverCache'] : new DriverLocal(['dir' => $dirCache], TRUE);
     $this->driverFiles->setDriverCache($this->driverCache);
@@ -918,7 +920,7 @@ class FileSystem {
   function reqGetVersion($request) {
     return [
       'version' => '5',
-      'build' => '8',
+      'build' => '9',
       'language' => 'php',
       'storage' => $this->driverFiles->getDriverName(),
       'dirFiles' => $this->driverFiles->getDir(),
