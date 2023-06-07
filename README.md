@@ -1,20 +1,18 @@
 # Flmngr PHP backend
 
-> Server-side part of the Flmngr file manager
+> Server-side part of the Flmngr file manager for PHP
 
 [![Flmngr file manager screenshot](https://flmngr.com/img/browsing.jpg)](https://flmngr.com)
 
-## Intro
-
 [Flmngr file manager](https://flmngr.com) is used to upload and manage files and images. Can be a standalone file manager (React/Angular/etc. or custom JavaScript or TypeScript integrations) or work together with [TinyMCE](https://flmngr.com/doc/install-tinymce-plugin), [CKEditor 4](https://flmngr.com/doc/install-ckeditor-plugin), [CKEditor 5](https://flmngr.com/doc/install-ckeditor-5-plugin), [N1ED](https://n1ed.com), or any other JS components.
 
-This package is a server-side implementation needed to support requests from the file manager dialog. It will handle some single URL and let the file manager receive file lists and send file commands to the server.
+This package is a server-side implementation needed to support requests from the file manager dialog when using PHP on the server. It will handle some single URL and let the file manager receive file lists and send file commands to the server.
 
 ## Install
 Install the [Flmngr composer package](https://packagist.org/packages/edsdk/flmngr-server-php) using the console command in the project folder:
 
 ```
-$ composer require edsdk/flmngr-server-php
+composer require edsdk/flmngr-server-php
 ```
 
 Visit the page with a [detailed manual](https://flmngr.com/doc/install-file-manager-server) on how to install it.
@@ -49,11 +47,11 @@ In case of any problem, we have a **very** detailed Question-Answer [debug manua
 
 ## See Also
 
-- [Flmngr](https://flmngr.com) - Flmngr file manager
-- [Install Flmngr](https://flmngr.com/doc/install-file-manager-server) - manual on how to install PHP file manager.
-- [Flmngr codepens](https://codepen.io/flmngr/pens/public) - collection of JS samples on CodePen
-- [Flmngr API](https://flmngr.com/doc/api) - API of Flmngr client
-- [N1ED](https://n1ed.com) - WYSIWYG editor with Flmngr file manager aboard, also works as a plugin for CKEditor 4, TinyMCE, which has modules for different CMSs.  
+- [Flmngr](https://flmngr.com) - Flmngr file manager.
+- [Install Flmngr PHP backend](https://flmngr.com/doc/install-file-manager-server) - the detailed manual on how to install PHP file manager on the server.
+- [Flmngr codepens](https://codepen.io/flmngr/pens/public) - collection of JS samples on CodePen.
+- [Flmngr API](https://flmngr.com/doc/api) - API of Flmngr client.
+- [N1ED](https://n1ed.com) - a website content builder with Flmngr file manager aboard, also works as a plugin for CKEditor 4, TinyMCE, which has modules for different CMSs.  
 
 
 ## License

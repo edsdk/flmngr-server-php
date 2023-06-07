@@ -377,21 +377,23 @@ class FileSystem {
 
     // $fileNames = array_slice($fileNames, $startIndex, $maxFiles);
     // Do the same, but respecting "alwaysInclude":
-    for ($i=count($alwaysInclude)-1; $i>=0; $i--) {
-        $index = array_search($alwaysInclude[$i], $fileNames);
-        if ($index === FALSE) {
-            // Remove unexisting items from "alwaysInclude"
-            array_splice($alwaysInclude, $i, 1);
-        } else {
-            // And existing items from "fileNames"
-            array_splice($fileNames, $index, 1);
+    if ($startIndex > 0 || $maxFiles < count($fileNames)) {
+        for ($i=count($alwaysInclude)-1; $i>=0; $i--) {
+            $index = array_search($alwaysInclude[$i], $fileNames);
+            if ($index === FALSE) {
+                // Remove unexisting items from "alwaysInclude"
+                array_splice($alwaysInclude, $i, 1);
+            } else {
+                // And existing items from "fileNames"
+                array_splice($fileNames, $index, 1);
+            }
         }
+        // Get a page
+        $fileNames = array_slice($fileNames, $startIndex, $maxFiles);
+        // Add to the start of the page all "alwaysInclude" files
+        for ($i=count($alwaysInclude)-1; $i>=0; $i--)
+            array_unshift($fileNames, $alwaysInclude[$i]);
     }
-    // Get a page
-    $fileNames = array_slice($fileNames, $startIndex, $maxFiles);
-    // Add to the start of the page all "alwaysInclude" files
-    for ($i=count($alwaysInclude)-1; $i>=0; $i--)
-        array_unshift($fileNames, $alwaysInclude[$i]);
 
     $now = $this->profile("Page slice", $now);
 
