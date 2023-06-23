@@ -1,10 +1,12 @@
+[![Flmngr file manager logo](https://flmngr.com/img/favicons/favicon-64x64.png)](https://flmngr.com)
+
 # Flmngr PHP backend
 
 > Server-side part of the Flmngr file manager for PHP
 
 [![Flmngr file manager screenshot](https://flmngr.com/img/browsing.jpg)](https://flmngr.com)
 
-[Flmngr file manager](https://flmngr.com) is used to upload and manage files and images. Can be a standalone file manager (React/Angular/etc. or custom JavaScript or TypeScript integrations) or work together with [TinyMCE](https://flmngr.com/doc/install-tinymce-plugin), [CKEditor 4](https://flmngr.com/doc/install-ckeditor-plugin), [CKEditor 5](https://flmngr.com/doc/install-ckeditor-5-plugin), [N1ED](https://n1ed.com), or any other JS components.
+[Flmngr file manager](https://flmngr.com) is used to upload and manage files and images. Can be a standalone file manager (React/Angular/etc. or custom JavaScript or TypeScript integrations) or work together with [TinyMCE](https://flmngr.com/doc/install-tinymce-plugin), [CKEditor&nbsp;4](https://flmngr.com/doc/install-ckeditor-plugin), [CKEditor&nbsp;5](https://flmngr.com/doc/install-ckeditor-5-plugin), [N1ED](https://n1ed.com), or any other JS components.
 
 This package is a server-side implementation needed to support requests from the file manager dialog when using PHP on the server. It will handle some single URL and let the file manager receive file lists and send file commands to the server.
 
