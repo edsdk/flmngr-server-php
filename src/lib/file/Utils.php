@@ -23,7 +23,6 @@ namespace EdSDK\FlmngrServer\lib\file;
 use EdSDK\FlmngrServer\model\Message;
 use EdSDK\FlmngrServer\lib\MessageException;
 use EdSDK\FlmngrServer\model\ImageInfo;
-use Exception;
 
 class Utils {
 

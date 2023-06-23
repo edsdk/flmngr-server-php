@@ -20,6 +20,7 @@
 
 namespace EdSDK\FlmngrServer\fs;
 
+use EdSDK\FlmngrServer\lib\Profile;
 use EdSDK\FlmngrServer\model\Message;
 use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\MessageException;
@@ -102,9 +103,13 @@ class DriverLocal {
   // Returns NULL if file does not exist of outdated
   function &getCacheChunk($chunkName, $validSeconds) {
 
-    if (in_array($chunkName, $this->cacheChunks)) {
+
+    if (in_array($chunkName, array_keys($this->cacheChunks))) {
       return $this->cacheChunks[$chunkName];
     }
+
+    $profile = new Profile("getCacheChunk()");
+    $profile->profile("Get chunk " . $chunkName);
 
     $chunkPath = $this->getCacheChunkPath($chunkName);
     if (
@@ -112,8 +117,16 @@ class DriverLocal {
       time() - $this->driverCache->lastModified($chunkPath) <= $validSeconds &&
       !in_array($chunkName, $this->clearCacheChunks)
     ) {
+      $profile->profile("File read start: " . $chunkPath);
       $content = $this->driverCache->get($chunkPath);
+      $profile->profile("File was finish: " . $chunkPath);
+
       $json = json_decode($content, JSON_OBJECT_AS_ARRAY);
+      $profile->profile("JSON decoded: " . $chunkPath);
+      $profile->total();
+
+      $this->cacheChunks[$chunkName] = $json;
+
       return $json;
     } else {
       if (in_array($chunkName, $this->clearCacheChunks))

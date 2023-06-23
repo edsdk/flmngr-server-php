@@ -22,6 +22,7 @@ namespace EdSDK\FlmngrServer\fs;
 
 use EdSDK\FlmngrServer\model\Message;
 use EdSDK\FlmngrServer\lib\file\Utils;
+use EdSDK\FlmngrServer\lib\Profile;
 use EdSDK\FlmngrServer\lib\MessageException;
 use EdSDK\FlmngrServer\model\FMDir;
 use EdSDK\FlmngrServer\model\FMFile;
@@ -204,8 +205,6 @@ class FileSystem {
     // Convert /root_dir/1/2/3 to 1/2/3
     $dirPath = $this->getRelativePath($dirPath);
 
-    $now = microtime(TRUE);
-    $start = $now;
 
     $files = []; // file name to sort values (like [filename, date, size])
     $formatFiles = []; // format to array(owner file name to file name)
@@ -214,7 +213,7 @@ class FileSystem {
     }
 
     $fFiles = $this->driverFiles->files($dirPath);
-    $now = $this->profile("Scan dir", $now);
+    $profile = new Profile("reqGetFilesPaged()");
 
     foreach ($fFiles as $file) {
 
@@ -266,7 +265,7 @@ class FileSystem {
         $formatFiles[$format][$name] = $file['name'];
       }
     }
-    $now = $this->profile("Fill image formats", $now);
+    $profile->profile("Scan dir finished");
 
     // Remove files outside of white list, and their formats too
     if (count($whiteList) > 0) { // only if whitelist is set
@@ -290,7 +289,7 @@ class FileSystem {
       }
     }
 
-    $now = $this->profile("White list", $now);
+    $profile->profile("White list finished");
 
     // Remove files outside of black list, and their formats too
     foreach ($files as $file => $v) {
@@ -314,7 +313,7 @@ class FileSystem {
 
     $countTotal = count($files);
 
-    $now = $this->profile("Black list", $now);
+    $profile->profile("Black list finished");
 
     // Remove files not matching the filter, and their formats too
     foreach ($files as $file => $v) {
@@ -332,7 +331,7 @@ class FileSystem {
 
     $countFiltered = count($files);
 
-    $now = $this->profile("Filter", $now);
+    $profile->profile("Filter finished");
 
     uasort($files, function ($arr1, $arr2) {
 
@@ -362,7 +361,7 @@ class FileSystem {
       $fileNames = array_reverse($fileNames);
     }
 
-    $now = $this->profile("Sorting", $now);
+    $profile->profile("Sorting finished");
 
     $startIndex = 0;
     if ($lastIndex) {
@@ -397,7 +396,7 @@ class FileSystem {
             array_unshift($fileNames, $alwaysInclude[$i]);
     }
 
-    $now = $this->profile("Page slice", $now);
+    $profile->profile("Page slice finished");
 
     $resultFiles = [];
 
@@ -420,8 +419,8 @@ class FileSystem {
       $resultFiles[] = $resultFile;
     }
 
-    $now = $this->profile("Create output list", $now);
-    $this->profile("Total", $start);
+    $profile->profile("Create output list finished");
+    $profile->total();
 
     return [
       'files' => $resultFiles,
@@ -524,22 +523,24 @@ class FileSystem {
   private $PREVIEW_HEIGHT = 139;
 
   function getCachedImageInfo($filePath) {
-    $start = microtime(TRUE);
+    $profile = new Profile("getCachedImageInfo()");
     $result = $this->getCachedFile($filePath)->getInfo();
-    $this->profile("getCachedImageInfo: " . $filePath, $start);
+    $profile->total();
     return $result;
   }
 
   function getCachedImagePreview($filePath, $contents) {
-    $start = microtime(TRUE);
+    $profile = new Profile("getCachedImagePreview()");
     $result = $this->getCachedFile($filePath)
       ->getPreview($this->PREVIEW_WIDTH, $this->PREVIEW_HEIGHT, $contents);
-    $this->profile("getCachedImagePreview: " . $filePath, $start);
+    $profile->total();
     return $result;
   }
 
   function getCachedImagePreviewAndResolution($filePath, $contents) {
-    $start = microtime(TRUE);
+
+    $profile = new Profile("getCachedImagePreviewAndResolution()");
+
     $cachedFile = $this->getCachedFile($filePath);
 
     $preview = $cachedFile->getPreview($this->PREVIEW_WIDTH, $this->PREVIEW_HEIGHT, $contents);
@@ -550,7 +551,7 @@ class FileSystem {
       isset($info['width']) ? $info['width'] : NULL,
       isset($info['height']) ? $info['height'] : NULL,
     ];
-    $this->profile("getCachedImagePreviewAndResolution: " . $filePath, $start);
+    $profile->total();
     return $result;
   }
 
@@ -959,13 +960,5 @@ class FileSystem {
       'file' => $resultFile,
     ];
   }
-
-  private function profile($text, $start) {
-    $now = microtime(TRUE);
-    $time = $now - $start;
-    //error_log(number_format($time, 3, ",", "")." sec   " . $text . "\n");
-    return $now;
-  }
-
 
 }
