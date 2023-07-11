@@ -294,35 +294,4 @@ class FlmngrServer {
 
   }
 
-  private static function upload($config) {
-    try {
-      $configUploader = [
-        'dirFiles' => $config['dirFiles'],
-        'dirTmp' => $config['dirTmp'],
-        'filesystem' => $config['filesystem'],
-        'config' => isset($config['uploader'])
-          ? $config['uploader']
-          : [],
-        'request' => $config['request'],
-      ];
-
-      $dir = isset($config['request']->post['dir']) ? $config['request']->post['dir'] : NULL;
-      $post = [
-        'action' => $config['request']->post['action'],
-        'dir' => $dir,
-        'data' => JsonCodec::s_toJson([
-          'action' => $config['request']->post['action'],
-          'dir' => $dir,
-        ]),
-      ];
-      FileUploaderServer::fileUploadRequest(
-        $configUploader,
-        $post,
-        $config['request']->files
-      );
-    } catch (MessageException $e) {
-      return new Response($e->getFailMessage(), NULL);
-    }
-  }
-
 }

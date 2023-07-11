@@ -156,21 +156,21 @@ class CachedFile {
       $original_ratio = $original_width / $original_height;
 
       if ($preview_width == NULL) {
-        $preview_width = floor($original_ratio * $preview_height);
+        $preview_width = max(1, floor($original_ratio * $preview_height));
       }
       else {
         if ($preview_height == NULL) {
-          $preview_height = floor((1 / $original_ratio) * $preview_width);
+          $preview_height = max(1, floor((1 / $original_ratio) * $preview_width));
         }
       }
 
       $preview_ratio = $preview_width / $preview_height;
 
       if ($original_ratio >= $preview_ratio) {
-        $preview_height = floor($original_height * $preview_width / $original_width);
+        $preview_height = max(1, floor($original_height * $preview_width / $original_width));
       }
       else {
-        $preview_width = floor($original_width * $preview_height / $original_height);
+        $preview_width = max(1, floor($original_width * $preview_height / $original_height));
       }
 
       $resizedImage = imagecreatetruecolor($preview_width, $preview_height);

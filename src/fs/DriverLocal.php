@@ -103,7 +103,6 @@ class DriverLocal {
   // Returns NULL if file does not exist of outdated
   function &getCacheChunk($chunkName, $validSeconds) {
 
-
     if (in_array($chunkName, array_keys($this->cacheChunks))) {
       return $this->cacheChunks[$chunkName];
     }
