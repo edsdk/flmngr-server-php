@@ -142,6 +142,9 @@ class FlmngrServer {
         case 'fileResize':
           $data = $fileSystem->reqResizeFile($request);
           break;
+        case 'fileResize2':
+          $data = $fileSystem->reqResizeFile2($request);
+          break;
         case 'fileOriginal':
           list($mimeType, $data) = $fileSystem->reqGetImageOriginal($request);
           header('Content-Type:' . $mimeType);

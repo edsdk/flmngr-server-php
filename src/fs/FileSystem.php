@@ -709,6 +709,16 @@ class FileSystem {
     return $result;
   }
 
+  function reqResizeFile2($request) {
+    $path = $this->reqResizeFile($request);
+    $info = $this->driverFiles->getImageInfo($path);
+    return [
+        "url" => $path,
+        "width" => $info->width,
+        "height" => $info->height
+    ];
+  }
+
   // mode:
   // "ALWAYS"
   // To recreate image preview in any case (even it is already generated before)
@@ -920,7 +930,7 @@ class FileSystem {
 
   function reqGetVersion($request) {
     return [
-      'version' => '5',
+      'version' => '6',
       'build' => '10',
       'language' => 'php',
       'storage' => $this->driverFiles->getDriverName(),
