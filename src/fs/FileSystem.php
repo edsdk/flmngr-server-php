@@ -711,11 +711,7 @@ class FileSystem {
 
   // Legacy request used in V1 client only
   function reqResizeFile($request) {
-    $resultNotProcessed = $this->reqResizeFile2($request);
-    $result = [];
-    for ($i=0; $i<count($resultNotProcessed); $i++)
-      $result[] = $resultNotProcessed["url"];
-    return $result;
+    return $this->reqResizeFile2($request)["url"];
   }
 
   // mode:
