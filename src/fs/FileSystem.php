@@ -709,14 +709,13 @@ class FileSystem {
     return $result;
   }
 
-  function reqResizeFile2($request) {
-    $path = $this->reqResizeFile($request);
-    $info = $this->driverFiles->getImageInfo($path);
-    return [
-        "url" => $path,
-        "width" => $info->width,
-        "height" => $info->height
-    ];
+  // Legacy request used in V1 client only
+  function reqResizeFile($request) {
+    $resultNotProcessed = $this->reqResizeFile2($request);
+    $result = [];
+    for ($i=0; $i<count($resultNotProcessed); $i++)
+      $result[] = $resultNotProcessed["url"];
+    return $result;
   }
 
   // mode:
@@ -734,7 +733,7 @@ class FileSystem {
 
   // File uploaded / saved in image editor and reuploaded: $mode is "ALWAYS" for required formats, "IF_EXISTS" for the others
   // User selected image in file manager:                  $mode is "DO_NOT_UPDATE" for required formats and there is no requests for the otheres
-  function reqResizeFile($request) {
+  function reqResizeFile2($request) {
     // $filePath here starts with "/", not with "/root_dir" as usual
     // so there will be no getRelativePath call
     $filePath = $request->post['f'];
@@ -769,6 +768,13 @@ class FileSystem {
     $oldFileNameWithExt = substr($filePath, $index + 1);
     $newExt = 'png';
     $oldExt = strtolower(Utils::getExt($filePath));
+    if ($oldExt === "svg") {
+      return [
+        "url" => $filePath,
+        "width" => -1,
+        "height" => -1
+      ];
+    }
     if ($oldExt === 'jpg' || $oldExt === 'jpeg') {
       $newExt = 'jpg';
     }
@@ -802,7 +808,17 @@ class FileSystem {
     }
 
     if ($mode === 'DO_NOT_UPDATE' && $isDstPathExists) {
-      return $dstPath;
+
+      // TODO: a preview is not needed, only a resolution
+      $info = $this->getCachedImagePreviewAndResolution(
+        $dstPath,
+        $this->driverFiles->get($dstPath)
+      );
+      return [
+        "url" => $dstPath,
+        "width" => $info[1],
+        "height" => $info[2]
+      ];
     }
 
     $contents = $this->driverFiles->get($filePath);
@@ -852,7 +868,17 @@ class FileSystem {
         $newFileNameWithoutExt . '.' . $oldExt === $oldFileNameWithExt
       ) {
         // return old file due to it has correct width/height to be used as a preview
-        return $filePath;
+
+        // TODO: a preview is not needed, only a resolution
+        $info = $this->getCachedImagePreviewAndResolution(
+          $filePath,
+          $this->driverFiles->get($filePath)
+        );
+        return [
+          "url" => $filePath,
+          "width" => $info[1],
+          "height" => $info[2]
+        ];
       }
       else {
         $width = $originalWidth;
@@ -862,11 +888,11 @@ class FileSystem {
 
     if ($needToFitWidth) {
       $ratio = $width / $originalWidth;
-      $height = $originalHeight * $ratio;
+      $height = max(1, floor($originalHeight * $ratio));
     }
     elseif ($needToFitHeight) {
       $ratio = $height / $originalHeight;
-      $width = $originalWidth * $ratio;
+      $width = max(1, floor($originalWidth * $ratio));
     }
 
     $resizedImage = imagecreatetruecolor($width, $height);
@@ -905,7 +931,11 @@ class FileSystem {
     ob_end_clean(); // delete buffer
     $this->driverFiles->put($dstPath, $stringData);
 
-    return $dstPath;
+    return [
+      "url" => $dstPath,
+      "width" => intval($width),
+      "height" => intval($height)
+    ];
   }
 
   function reqGetImageOriginal($request) {

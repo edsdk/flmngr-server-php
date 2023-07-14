@@ -362,10 +362,6 @@ class DriverLocal {
       }
   }
 
-  function getImageInfo($path) {
-      return Utils::getImageInfo($this->dir . $path);
-  }
-
   // Put file contents
   function put($path, $contents) {
     $this->makeDirectory(dirname($path)); // ensure dir exists
