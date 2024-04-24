@@ -170,6 +170,28 @@ class FlmngrServer {
       }
       $resp = new Response(NULL, $data);
     } catch (MessageException $e) {
+
+      if (isset($config["messageExceptionLogger"])) {
+        $config["messageExceptionLogger"]($e, $request);
+      } else {
+
+        $sourceException = $e->getSourceException();
+
+        // Log only messages with an exception
+        if ($sourceException != NULL) {
+          error_log("FLMNGR exception.\n");
+          error_log("REQUEST:\n");
+          error_log(print_r($request, TRUE)."\n");
+          error_log("\n");
+
+          error_log("RESPONSE:\n");
+          error_log(print_r($e->getFailMessage(), TRUE)."\n");
+
+          error_log("EXCEPTION:\n");
+          error_log($sourceException."\n");
+        }
+      }
+
       $resp = new Response($e->getFailMessage(), NULL);
     }
 

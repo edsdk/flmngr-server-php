@@ -282,7 +282,8 @@ class DriverLocal {
           $this->isCacheDriver,
           Message::FM_UNABLE_TO_LIST_CHILDREN_IN_DIRECTORY,
           $path
-        )
+        ),
+        $e
       );
     }
     foreach ($rawDirs as $dir) {
@@ -302,7 +303,8 @@ class DriverLocal {
           $this->isCacheDriver,
           Message::FM_UNABLE_TO_LIST_CHILDREN_IN_DIRECTORY,
           $path
-        )
+        ),
+        $e
       );
     }
 

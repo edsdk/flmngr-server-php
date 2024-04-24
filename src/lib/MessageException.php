@@ -25,13 +25,20 @@ use Exception;
 class MessageException extends Exception {
 
   protected $message;
+  protected $sourceException;
 
-  public function __construct($message) {
+  public function __construct($message, $sourceException = NULL) {
     parent::__construct();
     $this->message = (array) $message;
+    $this->sourceException = $sourceException;
   }
 
   public function getFailMessage() {
     return $this->message;
   }
+
+  public function getSourceException() {
+    return $this->sourceException;
+  }
+
 }
