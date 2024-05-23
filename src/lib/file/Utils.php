@@ -24,9 +24,11 @@ use EdSDK\FlmngrServer\model\Message;
 use EdSDK\FlmngrServer\lib\MessageException;
 use EdSDK\FlmngrServer\model\ImageInfo;
 
-class Utils {
+class Utils
+{
 
-  public static function getNameWithoutExt($filename) {
+  public static function getNameWithoutExt($filename)
+  {
     $ext = Utils::getExt($filename);
     if ($ext == NULL) {
       return $filename;
@@ -34,7 +36,8 @@ class Utils {
     return substr($filename, 0, strlen($filename) - strlen($ext) - 1);
   }
 
-  public static function getExt($name) {
+  public static function getExt($name)
+  {
     $i = strrpos($name, '.');
     if ($i !== FALSE) {
       return substr($name, $i + 1);
@@ -44,7 +47,8 @@ class Utils {
 
   const PROHIBITED_SYMBOLS = "/\\?%*:|\"<>";
 
-  public static function fixFileName($name) {
+  public static function fixFileName($name)
+  {
     $newName = '';
     for ($i = 0; $i < strlen($name); $i++) {
       $ch = substr($name, $i, 1);
@@ -56,7 +60,8 @@ class Utils {
     return $newName;
   }
 
-  public static function isFileNameSyntaxOk($name) {
+  public static function isFileNameSyntaxOk($name)
+  {
     if (strlen($name) == 0 || $name == '.' || strpos($name, '..') > -1) {
       return FALSE;
     }
@@ -103,18 +108,20 @@ class Utils {
     return TRUE;
   }
 
-  public static function isImage($name) {
+  public static function isImage($name)
+  {
     $exts = ['gif', 'jpg', 'jpeg', 'png', 'svg', 'webp', 'bmp'];
     $ext = Utils::getExt($name);
     for ($i = 0; $i < count($exts); $i++) {
-      if ($exts[$i] === strtolower($ext)) {
+      if ($ext !== null && $exts[$i] === strtolower($ext)) {
         return TRUE;
       }
     }
     return FALSE;
   }
 
-  public static function addTrailingSlash($value) {
+  public static function addTrailingSlash($value)
+  {
     if (
       $value != NULL &&
       (strlen($value) == 0 || !substr($value, strlen($value) - 1) == '/')
@@ -124,7 +131,8 @@ class Utils {
     return $value;
   }
 
-  public static function removeTrailingSlash($value) {
+  public static function removeTrailingSlash($value)
+  {
     if (
       $value != NULL &&
       (strlen($value) > 0 && substr($value, strlen($value) - 1) == '/')
@@ -134,7 +142,8 @@ class Utils {
     return $value;
   }
 
-  public static function getMimeType($filePath) {
+  public static function getMimeType($filePath)
+  {
     $mimeType = NULL;
     $filePath = strtolower($filePath);
     if (Utils::endsWith($filePath, '.png')) {
@@ -162,16 +171,19 @@ class Utils {
     return $mimeType;
   }
 
-  public static function endsWith($str, $ends) {
+  public static function endsWith($str, $ends)
+  {
     return substr($str, -strlen($ends)) === $ends;
   }
 
-  public static function normalizeNoEndSeparator($path) {
+  public static function normalizeNoEndSeparator($path)
+  {
     // TODO: normalize
     return rtrim($path, '/');
   }
 
-  public static function writeImageContents($ext, $image, $jpegQuality) {
+  public static function writeImageContents($ext, $image, $jpegQuality)
+  {
     ob_clean();
     ob_start();
     switch (strtolower($ext)) {
@@ -197,7 +209,8 @@ class Utils {
     return $contents;
   }
 
-  public static function getImageInfo($file) {
+  public static function getImageInfo($file)
+  {
     $size = @getimagesize($file);
     if ($size === FALSE) {
       //error_log("Unable to read image info of " . $file);
@@ -214,5 +227,4 @@ class Utils {
     $imageInfo->height = $size[1];
     return $imageInfo;
   }
-
 }
