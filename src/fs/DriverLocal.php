@@ -178,7 +178,10 @@ class DriverLocal {
     }
 
     $result = mkdir($this->dir . $path, 0777, TRUE);
-    if (!$result) {
+    if (
+      !$result &&
+      !(file_exists($this->dir . $path) && is_dir($this->dir . $path)) // could be created in another thread (request)
+    ) {
       throw new MessageException(
         Message::createMessage(
           $this->isCacheDriver,

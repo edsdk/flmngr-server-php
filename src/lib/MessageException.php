@@ -31,6 +31,13 @@ class MessageException extends Exception {
     parent::__construct();
     $this->message = (array) $message;
     $this->sourceException = $sourceException;
+    if ($sourceException == NULL) {
+      try {
+        throw new Exception("(manually created exception)");
+      } catch (Exception $e) {
+        $this->sourceException = $e;
+      }
+    }
   }
 
   public function getFailMessage() {
