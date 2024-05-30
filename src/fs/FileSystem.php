@@ -957,7 +957,7 @@ class FileSystem {
   function reqGetVersion($request) {
     return [
       'version' => '6',
-      'build' => '11',
+      'build' => '12',
       'language' => 'php',
       'storage' => $this->driverFiles->getDriverName(),
       'dirFiles' => $this->driverFiles->getDir(),
