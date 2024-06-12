@@ -9,8 +9,8 @@
 
     "authors": [
         {
-            "name": "EdSDK / N1ED / Flmngr team",
-            "email": "support@n1ed.zendesk.com"
+            "name": "EdSDK team (the authors of N1ED and Flmngr)",
+            "email": "support@helpdesk.edsdk.com"
         }
     ],
     "autoload": {

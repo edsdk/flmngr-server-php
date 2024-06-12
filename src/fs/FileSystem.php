@@ -634,8 +634,7 @@ class FileSystem {
     }
   }
 
-  // TODO: Currently we delete another image formats, probably we should regenerate them
-  protected function updateFormatsAndClearCachePreviewForFile($filePath, $formatSuffixes) {
+  protected function deleteFormatsAndClearCachePreviewForFile($filePath, $formatSuffixes) {
     $fullPaths = [];
 
     $index = strrpos($filePath, '.');
@@ -663,6 +662,34 @@ class FileSystem {
     }
   }
 
+  protected function updateFormatsAndClearCachePreviewForFile($filePath, $formatSuffixes, $formatMaxWidths, $formatMaxHeights) {
+
+    $fileNameWithoutExt = $filePath;
+    $indexSlash = strrpos($fileNameWithoutExt, '/');
+    if ($indexSlash !== FALSE)
+      $fileNameWithoutExt = substr($fileNameWithoutExt, $indexSlash + 1);
+    $indexDot = strrpos($fileNameWithoutExt, '.');
+    if ($indexDot !== FALSE)
+      $fileNameWithoutExt = substr($fileNameWithoutExt, 0, $indexDot);
+
+    for ($j = 0; $j < count($formatSuffixes); $j++) {
+      try {
+        $this->resizeFile2Impl(
+          $filePath,
+          $fileNameWithoutExt . $formatSuffixes[$j],
+          $formatMaxWidths[$j],
+          $formatMaxHeights[$j],
+          'IF_EXISTS'
+        );
+      } catch (Exception $e) {
+        // Supressing FM_NOT_ERROR_NOT_NEEDED_TO_UPDATE not-a-error
+        //error_log(print_r($e, TRUE));
+      }
+    }
+    $cachedFile = $this->getCachedFile($filePath);
+    $cachedFile->delete();
+  }
+
   // "suffixes" is an optional parameter (does not supported by Flmngr UI v1)
   function reqDeleteFiles($request) {
     $filesPaths = preg_split('/\|/', $request->post['fs']);
@@ -674,7 +701,7 @@ class FileSystem {
     }
 
     foreach ($filesPaths as $filePath) {
-      $this->updateFormatsAndClearCachePreviewForFile($filePath, $formatSuffixes);
+      $this->deleteFormatsAndClearCachePreviewForFile($filePath, $formatSuffixes);
     }
   }
 
@@ -747,6 +774,23 @@ class FileSystem {
       );
     }
 
+    return $this->resizeFile2Impl(
+      $filePath,
+      $newFileNameWithoutExt,
+      $width,
+      $height,
+      $mode
+    );
+  }
+
+  function resizeFile2Impl(
+    $filePath,
+    $newFileNameWithoutExt,
+    $width,
+    $height,
+    $mode
+  ) {
+
     if (
       strpos($newFileNameWithoutExt, '..') !== FALSE ||
       strpos($newFileNameWithoutExt, '/') !== FALSE ||
@@ -793,7 +837,6 @@ class FileSystem {
     }
 
     $isDstPathExists = $this->driverFiles->fileExists($dstPath);
-
     if ($mode === 'IF_EXISTS' && !$isDstPathExists) {
       throw new MessageException(
         Message::createMessage(
@@ -957,7 +1000,7 @@ class FileSystem {
   function reqGetVersion($request) {
     return [
       'version' => '6',
-      'build' => '12',
+      'build' => '13',
       'language' => 'php',
       'storage' => $this->driverFiles->getDriverName(),
       'dirFiles' => $this->driverFiles->getDir(),
@@ -984,10 +1027,19 @@ class FileSystem {
 
     $name = $this->driverFiles->uploadFile($file, $dir, $isOverwrite);
 
-
     if ($isOverwrite) {
       $formatSuffixes = $request->post['formatSuffixes'];
-      $this->updateFormatsAndClearCachePreviewForFile($dir . '/' . $name, $formatSuffixes);
+
+      if (isset($request->post['formatMaxWidths']) && isset($request->post['formatMaxHeights'])) {
+        // New corrected behavior since version 6, build 13
+        $formatMaxWidths = $request->post['formatMaxWidths'];
+        $formatMaxHeights = $request->post['formatMaxHeights'];
+        $this->updateFormatsAndClearCachePreviewForFile($dir . '/' . $name, $formatSuffixes, $formatMaxWidths, $formatMaxHeights);
+      } else {
+        // Old behavior till version 6, build 12
+        $this->deleteFormatsAndClearCachePreviewForFile($dir . '/' . $name, $formatSuffixes);
+      }
+
     }
 
     $resultFile = $this->getFileStructure($dir, $name);
