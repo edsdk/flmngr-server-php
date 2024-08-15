@@ -172,7 +172,6 @@ class Utils {
   }
 
   public static function writeImageContents($ext, $image, $jpegQuality) {
-    ob_clean();
     ob_start();
     switch (strtolower($ext)) {
       case 'gif':
