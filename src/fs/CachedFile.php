@@ -18,6 +18,7 @@
  *
  **/
 
+
 namespace EdSDK\FlmngrServer\fs;
 
 use EdSDK\FlmngrServer\model\Message;
@@ -25,7 +26,8 @@ use EdSDK\FlmngrServer\lib\file\blurHash\Blurhash;
 use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\MessageException;
 
-class CachedFile {
+class CachedFile
+{
 
   private $fileRelative;
 
@@ -57,7 +59,8 @@ class CachedFile {
   }
 
   // Clears cache for this file
-  function delete() {
+  function delete()
+  {
     if ($this->driverCache->exists($this->cacheFileJsonRelative)) {
       $this->driverCache->delete($this->cacheFileJsonRelative);
     }
@@ -66,7 +69,8 @@ class CachedFile {
     }
   }
 
-  function getInfo() {
+  function getInfo()
+  {
     if (!$this->driverCache->exists($this->cacheFileJsonRelative)) {
 
       try {
@@ -79,7 +83,6 @@ class CachedFile {
           'size' => $this->driverFiles->size($this->fileRelative),
         ];
         $this->writeInfo($info);
-
       } catch (Exception $e) {
         error_log("Exception while getting image size of " . $this->fileRelative);
         error_log($e);
@@ -96,7 +99,8 @@ class CachedFile {
     return $json;
   }
 
-  private function writeInfo($info) {
+  private function writeInfo($info)
+  {
     $dirname = dirname($this->cacheFileJsonRelative);
     if (!$this->driverCache->exists($dirname)) {
       $this->driverCache->makeDirectory($dirname);
@@ -104,7 +108,11 @@ class CachedFile {
     $this->driverCache->put($this->cacheFileJsonRelative, json_encode($info));
   }
 
-  function getPreview($preview_width, $preview_height, $contents) {
+  /**
+   * override-core: #86c19vjg1 support du Webp
+   */
+  function getPreview($preview_width, $preview_height, $contents)
+  {
     $cacheFilePreviewRelative = $this->cacheFileRelative . '.png';
 
     if ($this->driverCache->exists($cacheFilePreviewRelative)) {
@@ -123,19 +131,41 @@ class CachedFile {
     if (!$this->driverCache->exists($cacheFilePreviewRelative)) {
 
       if (Utils::getMimeType($this->fileRelative) === 'image/svg+xml') {
-          return ['image/svg+xml', $this->fileRelative, FALSE]; // FALSE means from files folder
+        return ['image/svg+xml', $this->fileRelative, FALSE]; // FALSE means from files folder
       }
 
       if ($contents === NULL) {
         $contents = $this->driverFiles->get($this->fileRelative);
       }
-      $image = imagecreatefromstring($contents);
+
+      // Check if the file is a WebP image
+      $isWebP = Utils::getMimeType($this->fileRelative) === 'image/webp';
+
+      if ($isWebP) {
+        // For WebP files, we need to use GD's dedicated WebP function
+        if (function_exists('imagecreatefromwebp')) {
+          // Create a temporary file to handle WebP
+          $tmpFile = tempnam(sys_get_temp_dir(), 'webp_');
+          file_put_contents($tmpFile, $contents);
+          $image = imagecreatefromwebp($tmpFile);
+          unlink($tmpFile); // Clean up
+        } else {
+          throw new MessageException(
+            Message::createMessage(FALSE, Message::IMAGE_PROCESS_ERROR . ' (WebP not supported in this PHP version)')
+          );
+        }
+      } else {
+        // For other image types, use imagecreatefromstring as before
+        $image = imagecreatefromstring($contents);
+      }
+
       if (!$image) {
         throw new MessageException(
-          Message::createMessage(FALSE,Message::IMAGE_PROCESS_ERROR)
+          Message::createMessage(FALSE, Message::IMAGE_PROCESS_ERROR)
         );
       }
 
+      // Rest of the image processing code remains the same
       $orientation = $this->driverFiles->getExifOrientation($this->fileRelative);
       if ($orientation === 3) {
         $image = imagerotate($image, 180, 0);
@@ -157,8 +187,7 @@ class CachedFile {
 
       if ($preview_width == NULL) {
         $preview_width = max(1, floor($original_ratio * $preview_height));
-      }
-      else {
+      } else {
         if ($preview_height == NULL) {
           $preview_height = max(1, floor((1 / $original_ratio) * $preview_width));
         }
@@ -168,8 +197,7 @@ class CachedFile {
 
       if ($original_ratio >= $preview_ratio) {
         $preview_height = max(1, floor($original_height * $preview_width / $original_width));
-      }
-      else {
+      } else {
         $preview_width = max(1, floor($original_width * $preview_height / $original_height));
       }
 
@@ -249,5 +277,4 @@ class CachedFile {
 
     return ['image/png', $cacheFilePreviewRelative, TRUE]; // TRUE means from cache folder
   }
-
 }
