@@ -168,7 +168,11 @@ class DriverLocal {
   }
 
   function lastModified($path) {
-    return filemtime($this->dir . $path);
+    $time = filemtime($this->dir . $path);
+    if ($time > 2147483647) {
+      $time = intval($time / 1000);
+    }
+    return $time;
   }
 
   function makeDirectory($path) {

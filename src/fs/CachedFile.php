@@ -129,10 +129,15 @@ class CachedFile {
       if ($contents === NULL) {
         $contents = $this->driverFiles->get($this->fileRelative);
       }
+      if (!$contents) {
+        throw new MessageException(
+          Message::createMessage(FALSE, Message::FM_FILE_DOES_NOT_EXIST)
+        );
+      }
       $image = imagecreatefromstring($contents);
       if (!$image) {
         throw new MessageException(
-          Message::createMessage(FALSE,Message::IMAGE_PROCESS_ERROR)
+          Message::createMessage(FALSE, Message::IMAGE_PROCESS_ERROR)
         );
       }
 
