@@ -129,7 +129,17 @@ class CachedFile {
       if ($contents === NULL) {
         $contents = $this->driverFiles->get($this->fileRelative);
       }
-      $image = imagecreatefromstring($contents);
+
+      // Handle WEBP images on PHP < 7.3 where imagecreatefromstring doesn't support WEBP
+      $mimeType = Utils::getMimeType($this->fileRelative);
+      if ($mimeType === 'image/webp' && PHP_VERSION_ID < 70300 && function_exists('imagecreatefromwebp')) {
+        $tmpFile = tempnam(sys_get_temp_dir(), 'webp_');
+        file_put_contents($tmpFile, $contents);
+        $image = imagecreatefromwebp($tmpFile);
+        unlink($tmpFile);
+      } else {
+        $image = imagecreatefromstring($contents);
+      }
       if (!$image) {
         throw new MessageException(
           Message::createMessage(FALSE,Message::IMAGE_PROCESS_ERROR)

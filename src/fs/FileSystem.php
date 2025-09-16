@@ -861,7 +861,17 @@ class FileSystem {
     }
 
     $contents = $this->driverFiles->get($filePath);
-    $image = imagecreatefromstring($contents);
+
+    // Handle WEBP images on PHP < 7.3 where imagecreatefromstring doesn't support WEBP
+    $mimeType = Utils::getMimeType($filePath);
+    if ($mimeType === 'image/webp' && PHP_VERSION_ID < 70300 && function_exists('imagecreatefromwebp')) {
+      $tmpFile = tempnam(sys_get_temp_dir(), 'webp_');
+      file_put_contents($tmpFile, $contents);
+      $image = imagecreatefromwebp($tmpFile);
+      unlink($tmpFile);
+    } else {
+      $image = imagecreatefromstring($contents);
+    }
 
     if (!$image) {
       throw new MessageException(
