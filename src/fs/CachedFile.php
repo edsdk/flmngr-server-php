@@ -126,15 +126,29 @@ class CachedFile {
           return ['image/svg+xml', $this->fileRelative, FALSE]; // FALSE means from files folder
       }
 
-      if ($contents === NULL) {
-        $contents = $this->driverFiles->get($this->fileRelative);
+      $image = null;
+
+      // Handle WEBP images on PHP < 7.3 where imagecreatefromstring doesn't support WEBP
+      if (
+        PHP_VERSION_ID < 70300 &&
+        function_exists('imagecreatefromwebp') &&
+        Utils::getMimeType($this->fileRelative) === 'image/webp'
+      ) {
+        $image = imagecreatefromwebp($this->fileRelative);
       }
-      if (!$contents) {
-        throw new MessageException(
-          Message::createMessage(FALSE, Message::FM_FILE_DOES_NOT_EXIST)
-        );
+
+      if (!$image) {
+        if ($contents === NULL) {
+          $contents = $this->driverFiles->get($this->fileRelative);
+        }
+        if (!$contents) {
+          throw new MessageException(
+            Message::createMessage(FALSE, Message::FM_FILE_DOES_NOT_EXIST)
+          );
+        }
+        $image = imagecreatefromstring($contents);
       }
-      $image = imagecreatefromstring($contents);
+
       if (!$image) {
         throw new MessageException(
           Message::createMessage(FALSE, Message::IMAGE_PROCESS_ERROR)

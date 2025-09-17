@@ -169,6 +169,7 @@ class DriverLocal {
 
   function lastModified($path) {
     $time = filemtime($this->dir . $path);
+    // Some platforms have time*1000
     if ($time > 2147483647) {
       $time = intval($time / 1000);
     }
@@ -181,18 +182,21 @@ class DriverLocal {
       return;
     }
 
-    $result = mkdir($this->dir . $path, 0777, TRUE);
-    if (
-      !$result &&
-      !(file_exists($this->dir . $path) && is_dir($this->dir . $path)) // could be created in another thread (request)
-    ) {
-      throw new MessageException(
-        Message::createMessage(
-          $this->isCacheDriver,
-          Message::FM_UNABLE_TO_CREATE_DIRECTORY,
-          $path
-        )
-      );
+    // In some environments we have race conditions when handling multiple requests
+    // so we wait a little if required to get a dir created by another thread or create it ourselves
+    if (!is_dir($this->dir . $path) && !mkdir($this->dir . $path, 0777, true)) {
+      usleep(200000); // 200 msec
+      clearstatcache(true, $this->dir . $path);
+
+      if (!is_dir($this->dir . $path) && !mkdir($this->dir . $path, 0777, true)) {
+        throw new MessageException(
+          Message::createMessage(
+            $this->isCacheDriver,
+            Message::FM_UNABLE_TO_CREATE_DIRECTORY,
+            $path
+          )
+        );
+      }
     }
   }
 
