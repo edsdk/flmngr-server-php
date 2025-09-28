@@ -570,7 +570,10 @@ class FileSystem {
         );
     }
 
-    if (strpos($name, '/') !== FALSE) {
+    if (
+      strpos($name, '/') !== FALSE ||
+      strpos($name, '..') !== FALSE
+    ) {
       throw new MessageException(
         Message::createMessage(
           FALSE,
