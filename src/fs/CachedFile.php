@@ -134,7 +134,7 @@ class CachedFile {
         function_exists('imagecreatefromwebp') &&
         Utils::getMimeType($this->fileRelative) === 'image/webp'
       ) {
-        $image = imagecreatefromwebp($this->fileRelative);
+        $image = imagecreatefromwebp($this->driverFiles->getDir() . $this->fileRelative);
       }
 
       if (!$image) {
