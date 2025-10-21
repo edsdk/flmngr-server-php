@@ -570,7 +570,10 @@ class FileSystem {
         );
     }
 
-    if (strpos($name, '/') !== FALSE) {
+    if (
+      strpos($name, '/') !== FALSE ||
+      strpos($name, '..') !== FALSE
+    ) {
       throw new MessageException(
         Message::createMessage(
           FALSE,
@@ -860,8 +863,22 @@ class FileSystem {
       ];
     }
 
-    $contents = $this->driverFiles->get($filePath);
-    $image = imagecreatefromstring($contents);
+
+    $image = null;
+
+    // Handle WEBP images on PHP < 7.3 where imagecreatefromstring doesn't support WEBP
+    if (
+      PHP_VERSION_ID < 70300 &&
+      function_exists('imagecreatefromwebp') &&
+      Utils::getMimeType($filePath) === 'image/webp'
+    ) {
+      $image = imagecreatefromwebp($filePath);
+    }
+
+    if (!$image) {
+      $contents = $this->driverFiles->get($filePath);
+      $image = imagecreatefromstring($contents);
+    }
 
     if (!$image) {
       throw new MessageException(
