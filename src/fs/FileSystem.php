@@ -872,7 +872,7 @@ class FileSystem {
       function_exists('imagecreatefromwebp') &&
       Utils::getMimeType($filePath) === 'image/webp'
     ) {
-      $image = imagecreatefromwebp($filePath);
+      $image = imagecreatefromwebp($this->driverFiles->getDir() . $filePath);
     }
 
     if (!$image) {
