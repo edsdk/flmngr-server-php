@@ -665,7 +665,7 @@ class FileSystem {
     }
   }
 
-  protected function updateFormatsAndClearCachePreviewForFile($filePath, $formatSuffixes, $formatMaxWidths, $formatMaxHeights) {
+  protected function updateFormatsAndClearCachePreviewForFile($filePath, $formatSuffixes, $formatMaxWidths, $formatMaxHeights, $contents) {
 
     $fileNameWithoutExt = $filePath;
     $indexSlash = strrpos($fileNameWithoutExt, '/');
@@ -691,6 +691,8 @@ class FileSystem {
     }
     $cachedFile = $this->getCachedFile($filePath);
     $cachedFile->delete();
+
+    $this->getCachedImagePreview($filePath, $contents);
   }
 
   // "suffixes" is an optional parameter (does not supported by Flmngr UI v1)
@@ -1040,23 +1042,22 @@ class FileSystem {
         )
       );
     }
+
     $file = $request->files['file'];
+    $contents = file_get_contents($file['tmp_name']);
 
     $name = $this->driverFiles->uploadFile($file, $dir, $isOverwrite);
 
-    if ($isOverwrite) {
-      $formatSuffixes = $request->post['formatSuffixes'];
+    $formatSuffixes = $request->post['formatSuffixes'];
 
-      if (isset($request->post['formatMaxWidths']) && isset($request->post['formatMaxHeights'])) {
-        // New corrected behavior since version 6, build 13
-        $formatMaxWidths = $request->post['formatMaxWidths'];
-        $formatMaxHeights = $request->post['formatMaxHeights'];
-        $this->updateFormatsAndClearCachePreviewForFile($dir . '/' . $name, $formatSuffixes, $formatMaxWidths, $formatMaxHeights);
-      } else {
-        // Old behavior till version 6, build 12
-        $this->deleteFormatsAndClearCachePreviewForFile($dir . '/' . $name, $formatSuffixes);
-      }
-
+    if (isset($request->post['formatMaxWidths']) && isset($request->post['formatMaxHeights'])) {
+      // New corrected behavior since version 6, build 13
+      $formatMaxWidths = $request->post['formatMaxWidths'];
+      $formatMaxHeights = $request->post['formatMaxHeights'];
+      $this->updateFormatsAndClearCachePreviewForFile($dir . '/' . $name, $formatSuffixes, $formatMaxWidths, $formatMaxHeights, $contents);
+    } else {
+      // Old behavior till version 6, build 12
+      $this->deleteFormatsAndClearCachePreviewForFile($dir . '/' . $name, $formatSuffixes);
     }
 
     $resultFile = $this->getFileStructure($dir, $name);
