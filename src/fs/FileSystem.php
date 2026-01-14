@@ -692,7 +692,9 @@ class FileSystem {
     $cachedFile = $this->getCachedFile($filePath);
     $cachedFile->delete();
 
-    $this->getCachedImagePreview($filePath, $contents);
+    if (Utils::isImage($filePath)) {
+      $this->getCachedImagePreview($filePath, $contents);
+    }
   }
 
   // "suffixes" is an optional parameter (does not supported by Flmngr UI v1)
