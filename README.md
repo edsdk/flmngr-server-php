@@ -51,11 +51,11 @@ In case of any problem, we have a **very** detailed Question-Answer [debug manua
 
 - [Flmngr](https://flmngr.com) - Flmngr file manager.
 - [Install Flmngr PHP backend](https://flmngr.com/doc/install-file-manager-server) - the detailed manual on how to install PHP file manager on the server.
-- [Flmngr codepens](https://codepen.io/flmngr/pens/public) - collection of JS samples on CodePen.
+- [Flmngr demos](https://codeplay.democdn.com/flmngr) - collection of JS samples on CodePlay.
 - [Flmngr API](https://flmngr.com/doc/api) - API of Flmngr client.
 - [N1ED](https://n1ed.com) - a website content builder with Flmngr file manager aboard, also works as a plugin for CKEditor 4, TinyMCE, which has modules for different CMSs.  
 
 
 ## License
 
-GNU Lesser General Public License v3; see LICENSE.txt
+GNU General Public License v3 or later; see LICENSE.txt

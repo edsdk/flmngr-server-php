@@ -20,7 +20,6 @@
 
 namespace EdSDK\FlmngrServer\fs;
 
-use EdSDK\FlmngrServer\lib\Profile;
 use EdSDK\FlmngrServer\model\Message;
 use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\MessageException;
@@ -32,15 +31,11 @@ class DriverLocal {
 
   private $isCacheDriver;
 
+  private $dirPermissions;
+
   // Link to cache driver
   // NULL if we are inside cache driver instance
-  private $driverCache;
-
-  // Some cached info (array of named chunks)
-  // Access it only by getCacheChunk() and write by setCacheChunk()
-  private $cacheChunks = [];
-
-  protected $clearCacheChunks = [];
+  protected $driverCache;
 
   // For use by FileSystem.php only, do not override
   public function setDriverCache($driverCache) {
@@ -49,10 +44,6 @@ class DriverLocal {
 
   function __construct($config, $isCacheDriver = FALSE) {
     $this->isCacheDriver = $isCacheDriver;
-
-    if (isset($config['clearCacheChunks'])) {
-      $this->clearCacheChunks = $config['clearCacheChunks'];
-    }
 
     if (!in_array('dir', array_keys($config)) || $config['dir'] === NULL) {
       try {
@@ -68,6 +59,11 @@ class DriverLocal {
     }
 
     $this->dir = rtrim($config['dir'], '\\/');
+
+    // Mode for directories we create, 0755 by default (older versions used 0777).
+    // Can be set back with 'dirPermissions' option if some shared hosting needs it
+    $this->dirPermissions = (isset($config['dirPermissions']) && $config['dirPermissions'] !== NULL)
+      ? $config['dirPermissions'] : 0755;
 
     $this->makeRootDir();
 
@@ -91,68 +87,6 @@ class DriverLocal {
       );
     }
 
-  }
-
-  private function getCacheChunkPath($chunkName) {
-    return "/fs/" . $chunkName . ".json";
-  }
-
-  // Returns "path-to-cache/fs/driver-name/chunk-name.json" content
-  // i. e. ".cache/fs/all-files.json"
-  // if file modify time is not older then $validSeconds
-  // Returns NULL if file does not exist of outdated
-  function &getCacheChunk($chunkName, $validSeconds) {
-
-    if (in_array($chunkName, array_keys($this->cacheChunks))) {
-      return $this->cacheChunks[$chunkName];
-    }
-
-    $profile = new Profile("getCacheChunk()");
-    $profile->profile("Get chunk " . $chunkName);
-
-    $chunkPath = $this->getCacheChunkPath($chunkName);
-    if (
-      $this->driverCache->fileExists($chunkPath) &&
-      time() - $this->driverCache->lastModified($chunkPath) <= $validSeconds &&
-      !in_array($chunkName, $this->clearCacheChunks)
-    ) {
-      $profile->profile("File read start: " . $chunkPath);
-      $content = $this->driverCache->get($chunkPath);
-      $profile->profile("File was finish: " . $chunkPath);
-
-      $json = json_decode($content, JSON_OBJECT_AS_ARRAY);
-      $profile->profile("JSON decoded: " . $chunkPath);
-      $profile->total();
-
-      $this->cacheChunks[$chunkName] = $json;
-
-      return $json;
-    } else {
-      if (in_array($chunkName, $this->clearCacheChunks))
-        error_log("Forced invalidating cache chunk");
-      $null = NULL;
-      return $null;
-    }
-
-  }
-
-  function setCacheChunk($chunkName, &$json) {
-    $chunkPath = $this->getCacheChunkPath($chunkName);
-    $chunkPathDir = dirname($chunkPath);
-    $this->driverCache->makeDirectory($chunkPathDir, 0777, TRUE);
-    $this->driverCache->put($chunkPath, json_encode($json, JSON_PRETTY_PRINT));
-  }
-
-  function deleteCacheChunk($chunkName) {
-    try {
-      $chunkPath = $this->getCacheChunkPath($chunkName);
-      if ($this->driverCache->fileExists($chunkPath)) {
-        $this->driverCache->delete($chunkPath);
-      }
-    } catch (Exception $e) {
-      error_log("Error on deleting cache chunk");
-      error_log($e);
-    }
   }
 
   function getDriverName() {
@@ -184,11 +118,11 @@ class DriverLocal {
 
     // In some environments we have race conditions when handling multiple requests
     // so we wait a little if required to get a dir created by another thread or create it ourselves
-    if (!is_dir($this->dir . $path) && !mkdir($this->dir . $path, 0777, true)) {
+    if (!is_dir($this->dir . $path) && !mkdir($this->dir . $path, $this->dirPermissions, true)) {
       usleep(200000); // 200 msec
       clearstatcache(true, $this->dir . $path);
 
-      if (!is_dir($this->dir . $path) && !mkdir($this->dir . $path, 0777, true)) {
+      if (!is_dir($this->dir . $path) && !mkdir($this->dir . $path, $this->dirPermissions, true)) {
         throw new MessageException(
           Message::createMessage(
             $this->isCacheDriver,
@@ -447,38 +381,49 @@ class DriverLocal {
     }
   }
 
+  // $dst is the dir to copy INTO: the copy keeps the source's own name inside it.
+  // The S3 and Blob drivers do the same, so do not "simplify" this into the full
+  // destination path - that is what move() takes, not this.
   function copyDirectory($src, $dst) {
-    $this->copyDirectory__recurse($src, $dst, FALSE);
+    // List before creating anything: a copy into own subtree would otherwise keep
+    // finding the children we are writing.
+    $dirs = $this->directories($src);
+    $files = $this->files($src);
+
+    $target = rtrim($dst, '\\/') . '/' . basename($src);
+    $this->makeDirectory($target);
+
+    foreach ($files as $file) {
+      $this->copyFile($src . '/' . $file['name'], $target . '/' . $file['name']);
+    }
+
+    // directories() gives bare names here (the cloud driver returns full paths)
+    foreach ($dirs as $dirName) {
+      $this->copyDirectory($src . '/' . $dirName, $target);
+    }
   }
 
-  private function copyDirectory__recurse($src, $dst, $createThisDstDir) {
-    // Do not create a root directory (target directory to copy inside already exists)
-    if ($createThisDstDir) {
-      $this->makeDirectory($dst);
+  // Cut off the path the client could send in the file name, so we always write
+  // into $dir. basename() does not treat "\" as a separator on Linux, so we
+  // replace them before the call. Null byte breaks the file functions below.
+  protected function uploadFile__getSafeName($file) {
+    $name = basename(str_replace('\\', '/', '' . $file['name']));
+    if ($name === '' || $name === '.' || $name === '..' || strpos($name, "\0") !== FALSE) {
+      throw new MessageException(
+        Message::createMessage(
+          $this->isCacheDriver,
+          Message::FM_DIR_NAME_CONTAINS_INVALID_SYMBOLS
+        )
+      );
     }
-
-    $fFiles = $this->files($src);
-    foreach ($fFiles as $file) {
-      $fileName = $file['name'];
-      if ($fileName != '.' && $fileName != '..') {
-        if ($this->directoryExists(TRUE, $src . '/' . $fileName)) {
-          $this->copyDir__recurse(
-            $src . '/' . $fileName,
-            $dst . '/' . $fileName,
-            TRUE
-          );
-        }
-        else {
-          $this->copyFile($src . '/' . $fileName, $dst . '/' . $fileName);
-        }
-      }
-    }
+    return $name;
   }
 
   function uploadFile__getName($file, $dir, $isOverwrite) {
+    $safeName = $this->uploadFile__getSafeName($file);
     if ($isOverwrite) {
       // Remove existing file if exists
-      $name = $file['name'];
+      $name = $safeName;
       if ($this->exists($dir . '/' . $name))
         $this->delete($dir . '/' . $name);
     } else {
@@ -487,15 +432,15 @@ class DriverLocal {
       do {
         $i++;
         if ($i == 0) {
-          $name = $file['name'];
+          $name = $safeName;
         }
         else {
           $name =
-            Utils::getNameWithoutExt($file['name']) .
+            Utils::getNameWithoutExt($safeName) .
             '_' .
             $i .
-            (Utils::getExt($file['name']) != NULL
-              ? '.' . Utils::getExt($file['name'])
+            (Utils::getExt($safeName) != NULL
+              ? '.' . Utils::getExt($safeName)
               : '');
         }
         $ok = !$this->exists($dir . '/' . $name);
@@ -510,7 +455,7 @@ class DriverLocal {
 
     $dirDst = $this->dir . $dir;
     if (!file_exists($dirDst)) {
-      mkdir($dirDst, 0777, true);
+      mkdir($dirDst, $this->dirPermissions, true);
     }
 
     $result = move_uploaded_file($file['tmp_name'], $dirDst. '/' . $name);

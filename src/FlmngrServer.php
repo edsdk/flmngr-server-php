@@ -148,11 +148,13 @@ class FlmngrServer {
         case 'fileOriginal':
           list($mimeType, $data) = $fileSystem->reqGetImageOriginal($request);
           header('Content-Type:' . $mimeType);
+          FlmngrServer::sendContentSecurityHeaders($mimeType);
           fpassthru($data);
           die();
         case 'filePreview':
           list($mimeType, $data) = $fileSystem->reqGetImagePreview($request);
           header('Content-Type:' . $mimeType);
+          FlmngrServer::sendContentSecurityHeaders($mimeType);
           fpassthru($data);
           die();
         case 'filePreviewAndResolution':
@@ -203,6 +205,19 @@ class FlmngrServer {
       print $strResp;
     } catch (Exception $e) {
       error_log($e);
+    }
+  }
+
+  // Do not let the browser sniff content type. Only known image types are shown
+  // inline, all other files are sent to download.
+  // The client fetches these responses as blobs, so it is not affected.
+  private static function sendContentSecurityHeaders($mimeType) {
+    header('X-Content-Type-Options: nosniff');
+    $inlineSafe = in_array($mimeType, [
+      'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp',
+    ], TRUE);
+    if (!$inlineSafe) {
+      header('Content-Disposition: attachment');
     }
   }
 

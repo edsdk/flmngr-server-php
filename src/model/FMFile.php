@@ -32,12 +32,16 @@ class FMFile {
 
   public $h;
 
+  // Data URI, set only when the client asked to embed previews
+  public $preview;
+
   function __construct($path, $name, $cachedImageInfo) {
     $this->p = "/" . $path . "/" . $name;
-    $this->s = $cachedImageInfo['size'];
-    $this->t = $cachedImageInfo['mtime'];
-    $this->w = $cachedImageInfo['width'] == 0 ? NULL : $cachedImageInfo['width'];
-    $this->h = $cachedImageInfo['height'] == 0 ? NULL : $cachedImageInfo['height'];
+    $this->s = isset($cachedImageInfo['size']) ? $cachedImageInfo['size'] : NULL;
+    $this->t = isset($cachedImageInfo['mtime']) ? $cachedImageInfo['mtime'] : NULL;
+    // Width and height are not known until a preview was created
+    $this->w = empty($cachedImageInfo['width']) ? NULL : $cachedImageInfo['width'];
+    $this->h = empty($cachedImageInfo['height']) ? NULL : $cachedImageInfo['height'];
   }
 
 }

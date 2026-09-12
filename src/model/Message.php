@@ -87,6 +87,8 @@ class Message {
 
   const FILE_SIZE_EXCEEDS_SYSTEM_LIMIT_2 = 30; // args: size, maxSize, strParameterInfo, like #30, but with info about wrong parameter
 
+  const FILE_TYPE_NOT_ALLOWED = 31; // args: name - file name rejected by denyFilePatterns (upload/rename)
+
   const FM_FILE_DOES_NOT_EXIST = 10001; // File does not exist: %1
 
   const FM_UNABLE_TO_WRITE_PREVIEW_IN_CACHE_DIR = 10002; // Unable to write a preview into cache directory

@@ -67,29 +67,39 @@ class CachedFile {
   }
 
   function getInfo() {
-    if (!$this->driverCache->exists($this->cacheFileJsonRelative)) {
+
+    $json = NULL;
+    if ($this->driverCache->exists($this->cacheFileJsonRelative)) {
+      $content = $this->driverCache->get($this->cacheFileJsonRelative);
+      $json = json_decode($content, TRUE);
+      if ($json !== NULL && !isset($json['size'])) {
+        // Saved by some older version at the moment the driver failed to get the size - recalculate
+        $json = NULL;
+      }
+    }
+
+    if ($json === NULL) {
 
       try {
 
         // We do not calculate BlurHash/width/height here due to this is a long operation
         // BlurHash/width/height will be calculated and JSON file will be updated on the first getCachedImagePreview() call
 
-        $info = [
+        $json = [
           'mtime' => $this->driverFiles->lastModified($this->fileRelative),
           'size' => $this->driverFiles->size($this->fileRelative),
         ];
-        $this->writeInfo($info);
+        $this->writeInfo($json);
 
       } catch (Exception $e) {
         error_log("Exception while getting image size of " . $this->fileRelative);
         error_log($e);
+        $json = NULL;
       }
     }
 
-    $content = $this->driverCache->get($this->cacheFileJsonRelative);
-    $json = json_decode($content, TRUE);
     if ($json === NULL) {
-      error_log("Unable to parse JSON from file " . $this->cacheFileJsonRelative);
+      error_log("Unable to get file info for " . $this->fileRelative);
       return NULL;
     }
 
@@ -104,7 +114,7 @@ class CachedFile {
     $this->driverCache->put($this->cacheFileJsonRelative, json_encode($info));
   }
 
-  function getPreview($preview_width, $preview_height, $contents) {
+  function getPreview($preview_width, $preview_height, $contents, $doUpscale = FALSE) {
     $cacheFilePreviewRelative = $this->cacheFileRelative . '.png';
 
     if ($this->driverCache->exists($cacheFilePreviewRelative)) {
@@ -112,7 +122,9 @@ class CachedFile {
       if (
         $info == NULL ||
         $info['mtime'] !== $this->driverFiles->lastModified($this->fileRelative) ||
-        $info['size'] !== $this->driverFiles->size($this->fileRelative)
+        $info['size'] !== $this->driverFiles->size($this->fileRelative) ||
+        // old preview cached before we stored resolution - recreate it to fill width/height in
+        !isset($info['width']) || !isset($info['height'])
       ) {
         // Delete preview if it was changed, will be recreated below
         $this->driverCache->delete($cacheFilePreviewRelative);
@@ -190,6 +202,13 @@ class CachedFile {
       }
       else {
         $preview_width = max(1, floor($original_width * $preview_height / $original_height));
+      }
+
+      // Do not enlarge small images, draw them 1:1 so small icons stay sharp.
+      // Old stretching behavior can be returned with doUpscalePreviews option
+      if (!$doUpscale && $preview_width >= $original_width && $preview_height >= $original_height) {
+        $preview_width = $original_width;
+        $preview_height = $original_height;
       }
 
       $resizedImage = imagecreatetruecolor($preview_width, $preview_height);

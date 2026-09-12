@@ -4,7 +4,7 @@
     "type": "library",
     "keywords": ["file", "manager", "finder", "image", "upload", "server", "imgpen"],
     "homepage": "https://flmngr.com",
-    "license": "proprietary",
+    "license": "GPL-3.0-or-later",
     "minimum-stability": "stable",
 
     "authors": [
@@ -20,8 +20,8 @@
     },
     "require": {
         "ext-gd": "*",
-        "ext-curl": "*",
         "ext-json": "*",
-        "ext-exif": "*"
+        "ext-exif": "*",
+        "enshrined/svg-sanitize": "^0.22"
     }
 }

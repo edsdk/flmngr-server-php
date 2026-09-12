@@ -34,14 +34,36 @@ class FileSystem {
 
   private $driverCache;
 
+  private $denyFilePatterns;
+
+  private $doUpscalePreviews;
+
+  // Set from outside (FlmngrServer reads it from the request), so it is public.
+  // Declared to not create it dynamically - that is deprecated since PHP 8.2.
+  public $embedPreviews = FALSE;
+
+  // File names not allowed to upload or rename to: scripts (also with double
+  // extension like "x.php.jpg"), server config files, HTML. SVG is allowed but
+  // gets sanitized. The list can be overridden with 'denyFilePatterns' option.
+  // Also it is always a good idea to disable script execution in files dir
+  const DEFAULT_DENY_FILE_PATTERNS = [
+    '.htaccess', '.htpasswd', '.user.ini',
+    '*.php*', '*.phtml', '*.phar', '*.pht', '*.phps',
+    '*.htm', '*.html', '*.shtml',
+  ];
+
   function __construct($config) {
     $dirFiles = in_array('dirFiles', array_keys($config)) ? $config['dirFiles'] : NULL; // NULL will cause exception later
     $dirCache = in_array('dirCache', array_keys($config)) ? $config['dirCache'] : ($dirFiles === NULL ? NULL : $dirFiles . '/.cache');
     $dirFiles = str_replace("\\", "/", $dirFiles);
     $dirCache = str_replace("\\", "/", $dirCache);
-    $this->driverFiles = in_array('driverFiles', array_keys($config)) ? $config['driverFiles'] : new DriverLocal(['dir' => $dirFiles]);
-    $this->driverCache = in_array('driverCache', array_keys($config)) ? $config['driverCache'] : new DriverLocal(['dir' => $dirCache], TRUE);
+    $dirPermissions = in_array('dirPermissions', array_keys($config)) ? $config['dirPermissions'] : NULL;
+    $this->driverFiles = in_array('driverFiles', array_keys($config)) ? $config['driverFiles'] : new DriverLocal(['dir' => $dirFiles, 'dirPermissions' => $dirPermissions]);
+    $this->driverCache = in_array('driverCache', array_keys($config)) ? $config['driverCache'] : new DriverLocal(['dir' => $dirCache, 'dirPermissions' => $dirPermissions], TRUE);
     $this->driverFiles->setDriverCache($this->driverCache);
+    $this->denyFilePatterns = in_array('denyFilePatterns', array_keys($config)) ? $config['denyFilePatterns'] : self::DEFAULT_DENY_FILE_PATTERNS;
+    // TRUE returns old behavior: stretch small images to fill the preview box
+    $this->doUpscalePreviews = in_array('doUpscalePreviews', array_keys($config)) ? $config['doUpscalePreviews'] : FALSE;
   }
 
   private function getRelativePath($path) {
@@ -68,7 +90,12 @@ class FileSystem {
         $path = '/' . $rootDirName . '/' . substr($path, 7);
       }
     }
-    if (strpos($path, '/' . $rootDirName) !== 0) {
+    // Path must be the root dir itself or lay inside it, we compare by full
+    // path segments here ("/files" must not match "/files_secret").
+    // Cloud drivers have empty root dir name and rely on '..' check above,
+    // so we skip this check for them
+    $root = '/' . $rootDirName;
+    if ($rootDirName !== '' && $path !== $root && strpos($path, $root . '/') !== 0) {
       throw new MessageException(
         Message::createMessage(
           FALSE,
@@ -77,7 +104,87 @@ class FileSystem {
       );
     }
 
-    return substr($path, strlen('/' . $rootDirName));
+    return substr($path, strlen($root));
+  }
+
+  // Check file name against denyFilePatterns before writing anything.
+  // Must be a name, not a path, so it can not point outside of the dir we write
+  // into. PHP strips the path itself, but a custom request implementation can
+  // pass the name as the client sent it. Null byte is not allowed by fnmatch().
+  // Dots inside the name are ok ("report..final.pdf"), only "." and ".." are not.
+  private function assertFileNameAllowed($name) {
+    $name = '' . $name;
+
+    if (
+      strpos($name, '/') !== FALSE ||
+      strpos($name, '\\') !== FALSE ||
+      strpos($name, "\0") !== FALSE
+    ) {
+      error_log("Flmngr: rejected file name '" . $name . "' (not a plain file name)");
+      throw new MessageException(
+        Message::createMessage(
+          FALSE,
+          Message::FM_DIR_NAME_CONTAINS_INVALID_SYMBOLS
+        )
+      );
+    }
+
+    $basename = basename($name);
+    $denied = $basename === '' || $basename === '.' || $basename === '..';
+    $matchedPattern = $denied ? '(empty or relative name)' : NULL;
+    if (!$denied) {
+      foreach ($this->denyFilePatterns as $pattern) {
+        if (fnmatch($pattern, $basename, FNM_CASEFOLD) === TRUE) {
+          $denied = TRUE;
+          $matchedPattern = $pattern;
+          break;
+        }
+      }
+    }
+    if ($denied) {
+      // Matched rule goes into the log only, we do not show it to the user
+      error_log("Flmngr: rejected file name '" . $basename . "' (denyFilePatterns rule: " . $matchedPattern . ")");
+      throw new MessageException(
+        Message::createMessage(FALSE, Message::FILE_TYPE_NOT_ALLOWED, $basename)
+      );
+    }
+  }
+
+  // SVG can contain scripts, so we always sanitize it.
+  // If sanitizer library is not installed, SVG upload is rejected
+  private function sanitizeSvg($contents) {
+    if (!class_exists('enshrined\\svgSanitize\\Sanitizer')) {
+      error_log("Flmngr: SVG upload rejected - the 'enshrined/svg-sanitize' library is not installed.");
+      throw new MessageException(
+        Message::createMessage(FALSE, Message::IMAGE_PROCESS_ERROR)
+      );
+    }
+    $sanitizer = new \enshrined\svgSanitize\Sanitizer();
+    $clean = $sanitizer->sanitize('' . $contents);
+    if ($clean === FALSE) {
+      error_log("Flmngr: SVG upload rejected - sanitization failed.");
+      throw new MessageException(
+        Message::createMessage(FALSE, Message::IMAGE_PROCESS_ERROR)
+      );
+    }
+    return $clean;
+  }
+
+  // If a file got .svg extension on rename, we sanitize it the same way as on
+  // upload, or delete it if we can not. The caller makes sure this is a file:
+  // asking the storage right after a move can give a stale answer (cloud
+  // drivers keep a listing cache)
+  private function sanitizeSvgIfSvgFile($path) {
+    if (strtolower('' . Utils::getExt($path)) !== 'svg') {
+      return;
+    }
+    try {
+      $clean = $this->sanitizeSvg($this->driverFiles->get($path));
+    } catch (\Throwable $e) {
+      $this->driverFiles->delete($path); // do not leave unsanitized SVG
+      throw $e;
+    }
+    $this->driverFiles->put($path, $clean);
   }
 
   /**
@@ -137,52 +244,57 @@ class FileSystem {
     return $dirs;
   }
 
-  // Legacy request for Flmngr v1
+  // Legacy request for Flmngr v1.
+  // Everything goes through the driver here: a cloud storage has no local
+  // path to check with is_file() and friends
   public function reqGetFiles($request) {
     $path = $request->post['d'];
 
     // with "/root_dir_name" in the start
     $path = $this->getRelativePath($path);
 
-    $fFiles = $this->driverFiles->files($path);
+    // FlmngrServer passes the request value as is, so it can be a string
+    $embedPreviews = $this->embedPreviews === TRUE ||
+      $this->embedPreviews === 'true' ||
+      $this->embedPreviews === '1' ||
+      $this->embedPreviews === 1;
 
     $files = [];
-    for ($i = 0; $i < count($fFiles); $i++) {
-      $fFile = $fFiles[$i]['name'];
+    foreach ($this->driverFiles->files($path) as $fFile) {
+      $name = $fFile['name'];
 
-      if (preg_match('/-(preview|medium|original)\\.[^.]+$/', $fFile) === 1) {
+      // v1 client knows nothing about format suffixes, so the default ones are hidden here
+      if (preg_match('/-(preview|medium|original)\\.[^.]+$/', $name) === 1) {
         continue;
       }
 
-      $filePath = $path . '/' . $fFile;
-      if (is_file($filePath)) {
-        $preview = NULL;
+      $filePath = $path . '/' . $name;
+      $isImage = Utils::isImage($name);
+
+      $preview = NULL;
+      if ($embedPreviews && $isImage) {
+        // Reads the image once per file not cached yet
         try {
-          $imageInfo = Utils::getImageInfo($filePath);
-          if ($this->embedPreviews === TRUE) {
-            $preview = $this->getCachedImagePreview($filePath, NULL);
-            $preview[1] = ($preview[2] === FALSE ? $this->driverFiles : $this->driverCache)->get($preview[1]); // convert path to content
-            $preview = "data:" . $preview[0] . ";base64," . base64_encode($preview[1]);
-          }
-
-        } catch (Exception $e) {
-          $imageInfo = new ImageInfo();
-          $imageInfo->width = NULL;
-          $imageInfo->height = NULL;
+          $preview = $this->getCachedImagePreview($filePath, NULL);
+          $contents = ($preview[2] === FALSE ? $this->driverFiles : $this->driverCache)->get($preview[1]);
+          $preview = "data:" . $preview[0] . ";base64," . base64_encode($contents);
+        } catch (\Throwable $e) {
+          $preview = NULL;
         }
-        $file = new FMFile(
-          $path,
-          $fFile,
-          filesize($filePath),
-          filemtime($filePath),
-          $imageInfo
-        );
-        if ($preview != NULL) {
-          $file->preview = $preview;
-        }
-
-        $files[] = $file;
       }
+
+      // Width and height are known after the preview was created at least once,
+      // the same way as in the paged listing
+      $info = $isImage ? $this->getCachedImageInfo($filePath) : NULL;
+      if ($info === NULL) {
+        $info = ['size' => $fFile['size'], 'mtime' => $fFile['mtime']];
+      }
+
+      $file = new FMFile($path, $name, $info);
+      if ($preview !== NULL) {
+        $file->preview = $preview;
+      }
+      $files[] = $file;
     }
 
     return $files;
@@ -199,8 +311,10 @@ class FileSystem {
     $filter = isset($request->post['filter']) ? $request->post['filter'] : "**";
     $orderBy = $request->post['orderBy'];
     $orderAsc = $request->post['orderAsc'];
-    $formatIds = $request->post['formatIds'];
-    $formatSuffixes = $request->post['formatSuffixes'];
+    // The client sends no formats at all when the conf has no format except the
+    // default one, so treat them as empty instead of failing on count() below
+    $formatIds = isset($request->post['formatIds']) ? $request->post['formatIds'] : [];
+    $formatSuffixes = isset($request->post['formatSuffixes']) ? $request->post['formatSuffixes'] : [];
 
     // Convert /root_dir/1/2/3 to 1/2/3
     $dirPath = $this->getRelativePath($dirPath);
@@ -498,15 +612,18 @@ class FileSystem {
   function reqCopyFiles($request) {
     $files = $request->post['fs'];
     $newPath = $request->post['n'];
+    $formatSuffixes = $this->readFormatSuffixes($request);
 
     $filesPaths = preg_split('/\|/', $files);
     for ($i = 0; $i < count($filesPaths); $i++) {
       $filesPaths[$i] = $this->getRelativePath($filesPaths[$i]);
     }
-    $newPath = $this->getRelativePath($newPath);
+    $newPath = rtrim($this->getRelativePath($newPath), '\\/');
 
     for ($i = 0; $i < count($filesPaths); $i++) {
-      $this->driverFiles->copyFile($filesPaths[$i], rtrim($newPath, '\\/') . '/' . basename($filesPaths[$i]));
+      $formats = $this->formatFilePaths($filesPaths[$i], $formatSuffixes);
+      $this->driverFiles->copyFile($filesPaths[$i], $newPath . '/' . basename($filesPaths[$i]));
+      $this->copyFormats($formats, $newPath);
     }
   }
 
@@ -532,7 +649,7 @@ class FileSystem {
   function getCachedImagePreview($filePath, $contents) {
     $profile = new Profile("getCachedImagePreview()");
     $result = $this->getCachedFile($filePath)
-      ->getPreview($this->PREVIEW_WIDTH, $this->PREVIEW_HEIGHT, $contents);
+      ->getPreview($this->PREVIEW_WIDTH, $this->PREVIEW_HEIGHT, $contents, $this->doUpscalePreviews);
     $profile->total();
     return $result;
   }
@@ -543,7 +660,7 @@ class FileSystem {
 
     $cachedFile = $this->getCachedFile($filePath);
 
-    $preview = $cachedFile->getPreview($this->PREVIEW_WIDTH, $this->PREVIEW_HEIGHT, $contents);
+    $preview = $cachedFile->getPreview($this->PREVIEW_WIDTH, $this->PREVIEW_HEIGHT, $contents, $this->doUpscalePreviews);
     $info = $cachedFile->getInfo();
 
     $result = [
@@ -572,7 +689,9 @@ class FileSystem {
 
     if (
       strpos($name, '/') !== FALSE ||
-      strpos($name, '..') !== FALSE
+      strpos($name, '\\') !== FALSE ||
+      strpos($name, '..') !== FALSE ||
+      strpos($name, "\0") !== FALSE
     ) {
       throw new MessageException(
         Message::createMessage(
@@ -615,14 +734,32 @@ class FileSystem {
       );
     }
 
+    $this->assertFileNameAllowed($newName);
+
     $path = $this->getRelativePath($path);
 
-    $this->driverFiles->move($path, rtrim(dirname($path), '\\/') . '/' . $newName);
+    // File or dir, and which resized copies it has - both asked before the move,
+    // see formatFilePaths() on why
+    $isFile = $this->driverFiles->fileExists($path);
+    $formats = $isFile ? $this->formatFilePaths($path, $this->readFormatSuffixes($request)) : [];
+
+    $target = rtrim(dirname($path), '\\/') . '/' . $newName;
+    $this->driverFiles->move($path, $target);
+
+    if ($isFile) {
+      $isExtChanged = strtolower('' . Utils::getExt($path)) !== strtolower('' . Utils::getExt($newName));
+      $this->renameFormats($formats, $newName, $isExtChanged);
+      $this->getCachedFile($path)->delete();
+
+      // The file could get .svg extension just now, then we need to sanitize it
+      $this->sanitizeSvgIfSvgFile($target);
+    }
   }
 
   function reqMoveFiles($request) {
     $filesPaths = preg_split('/\|/', $request->post['fs']); // array of file paths
     $newPath = $request->post['n']; // dir without filename
+    $formatSuffixes = $this->readFormatSuffixes($request);
 
     for ($i = 0; $i < count($filesPaths); $i++) {
       $filesPaths[$i] = $this->getRelativePath($filesPaths[$i]);
@@ -631,38 +768,123 @@ class FileSystem {
 
     for ($i = 0; $i < count($filesPaths); $i++) {
       $filePath = $filesPaths[$i];
+      $formats = $this->formatFilePaths($filePath, $formatSuffixes);
       $index = strrpos($filePath, '/');
       $name = $index === FALSE ? $filePath : substr($filePath, $index + 1);
       $this->driverFiles->move($filePath, $newPath . '/' . $name);
+      $this->getCachedFile($filePath)->delete();
+      $this->moveFormats($formats, $newPath);
+    }
+  }
+
+  // "formatSuffixes" is optional in every request: the client sends nothing
+  // when the only image format is the default one
+  private function readFormatSuffixes($request) {
+    if (!isset($request->post['formatSuffixes']) || !is_array($request->post['formatSuffixes'])) {
+      return [];
+    }
+    return $request->post['formatSuffixes'];
+  }
+
+  // A suffix comes from the client and gets glued into a file path,
+  // so only a plain name ending is accepted
+  private function isFormatSuffixSafe($suffix) {
+    return is_string($suffix) &&
+      $suffix !== '' &&
+      strpos($suffix, '/') === FALSE &&
+      strpos($suffix, '\\') === FALSE &&
+      strpos($suffix, '..') === FALSE &&
+      strpos($suffix, "\0") === FALSE;
+  }
+
+  // Resized copies of a file that exist: "photo.jpg" -> "photo-preview.jpg", etc.
+  // A copy keeps its own extension (png/jpg/webp), the original can have any.
+  //
+  // Call it BEFORE moving or deleting the file: cloud drivers answer from a
+  // listing cache which is not refreshed for us inside the same request
+  private function formatFilePaths($filePath, $formatSuffixes) {
+    $dir = rtrim(dirname($filePath), '\\/');
+    if ($dir === '.') {
+      $dir = '';
+    }
+    $base = Utils::getNameWithoutExt(basename($filePath));
+
+    $formats = [];
+    foreach ($formatSuffixes as $suffix) {
+      if (!$this->isFormatSuffixSafe($suffix)) {
+        continue;
+      }
+      foreach (["png", "jpg", "jpeg", "webp"] as $ext) {
+        $formatPath = $dir . '/' . $base . $suffix . '.' . $ext;
+        if ($this->driverFiles->fileExists($formatPath)) {
+          $formats[] = [
+            'path' => $formatPath,
+            'dir' => $dir,
+            'suffix' => $suffix,
+            'ext' => $ext,
+          ];
+        }
+      }
+    }
+    return $formats;
+  }
+
+  // The resized copies follow the file they were made from.
+  // These run after the file itself is already processed, so a failure is only
+  // logged: a copy is generated again on demand, and the user's action
+  // must not look failed because of it
+  private function renameFormats($formats, $newName, $isExtChanged) {
+    $newBase = Utils::getNameWithoutExt($newName);
+    foreach ($formats as $format) {
+      try {
+        if ($isExtChanged) {
+          // "photo-preview.png" is not a copy of "photo.jpg", the listing
+          // would not group them anymore, so it goes away
+          $this->driverFiles->delete($format['path']);
+        } else {
+          $this->driverFiles->move(
+            $format['path'],
+            $format['dir'] . '/' . $newBase . $format['suffix'] . '.' . $format['ext']
+          );
+        }
+        $this->getCachedFile($format['path'])->delete();
+      } catch (\Throwable $e) {
+        error_log("Flmngr: unable to rename " . $format['path'] . ": " . $e->getMessage());
+      }
+    }
+  }
+
+  private function moveFormats($formats, $newDir) {
+    foreach ($formats as $format) {
+      try {
+        $this->driverFiles->move($format['path'], $newDir . '/' . basename($format['path']));
+        $this->getCachedFile($format['path'])->delete();
+      } catch (\Throwable $e) {
+        error_log("Flmngr: unable to move " . $format['path'] . ": " . $e->getMessage());
+      }
+    }
+  }
+
+  private function copyFormats($formats, $newDir) {
+    foreach ($formats as $format) {
+      try {
+        $this->driverFiles->copyFile($format['path'], $newDir . '/' . basename($format['path']));
+      } catch (\Throwable $e) {
+        error_log("Flmngr: unable to copy " . $format['path'] . ": " . $e->getMessage());
+      }
+    }
+  }
+
+  private function deleteFormats($formats) {
+    foreach ($formats as $format) {
+      $this->driverFiles->delete($format['path']);
+      $this->getCachedFile($format['path'])->delete();
     }
   }
 
   protected function deleteFormatsAndClearCachePreviewForFile($filePath, $formatSuffixes) {
-    $fullPaths = [];
-
-    $index = strrpos($filePath, '.');
-    if ($index !== FALSE) {
-      $fullPathPrefix = substr($filePath, 0, $index);
-    } else {
-      $fullPathPrefix = $filePath;
-    }
-    if (isset($formatSuffixes) && is_array($formatSuffixes)) {
-      for ($j = 0; $j < count($formatSuffixes); $j++) {
-        $exts = ["png", "jpg", "jpeg", "webp"];
-        for ($k = 0; $k < count($exts); $k++) {
-          $fullPaths[] = $fullPathPrefix . $formatSuffixes[$j] . '.' . $exts[$k];
-        }
-      }
-    }
-
-    $cachedFile = $this->getCachedFile($filePath);
-    $cachedFile->delete();
-
-    for ($j = 0; $j < count($fullPaths); $j++) {
-      if ($this->driverFiles->fileExists($fullPaths[$j])) {
-        $this->driverFiles->delete($fullPaths[$j]);
-      }
-    }
+    $this->getCachedFile($filePath)->delete();
+    $this->deleteFormats($this->formatFilePaths($filePath, $formatSuffixes));
   }
 
   protected function updateFormatsAndClearCachePreviewForFile($filePath, $formatSuffixes, $formatMaxWidths, $formatMaxHeights, $contents) {
@@ -697,18 +919,20 @@ class FileSystem {
     }
   }
 
-  // "suffixes" is an optional parameter (does not supported by Flmngr UI v1)
+  // "formatSuffixes" is an optional parameter (not sent by Flmngr UI v1)
   function reqDeleteFiles($request) {
     $filesPaths = preg_split('/\|/', $request->post['fs']);
-    $formatSuffixes = $request->post['formatSuffixes'];
+    $formatSuffixes = $this->readFormatSuffixes($request);
 
     for ($i = 0; $i < count($filesPaths); $i++) {
       $filesPaths[$i] = $this->getRelativePath($filesPaths[$i]);
-      $this->driverFiles->delete($filesPaths[$i]);
     }
 
     foreach ($filesPaths as $filePath) {
-      $this->deleteFormatsAndClearCachePreviewForFile($filePath, $formatSuffixes);
+      $formats = $this->formatFilePaths($filePath, $formatSuffixes);
+      $this->driverFiles->delete($filePath);
+      $this->getCachedFile($filePath)->delete();
+      $this->deleteFormats($formats);
     }
   }
 
@@ -886,7 +1110,6 @@ class FileSystem {
 
     if (!$image) {
       throw new MessageException(
-        FALSE,
         Message::createMessage(
           FALSE,
           Message::IMAGE_PROCESS_ERROR
@@ -1021,7 +1244,7 @@ class FileSystem {
   function reqGetVersion($request) {
     return [
       'version' => '6',
-      'build' => '14',
+      'build' => '16',
       'language' => 'php',
       'storage' => $this->driverFiles->getDriverName(),
       'dirFiles' => $this->driverFiles->getDir(),
@@ -1046,11 +1269,23 @@ class FileSystem {
     }
 
     $file = $request->files['file'];
+
+    $this->assertFileNameAllowed($file['name']);
+
     $contents = file_get_contents($file['tmp_name']);
+
+    if (strtolower('' . Utils::getExt($file['name'])) === 'svg') {
+      $contents = $this->sanitizeSvg($contents);
+      if (file_put_contents($file['tmp_name'], $contents) === FALSE) {
+        throw new MessageException(
+          Message::createMessage(FALSE, Message::WRITING_FILE_ERROR, $file['name'])
+        );
+      }
+    }
 
     $name = $this->driverFiles->uploadFile($file, $dir, $isOverwrite);
 
-    $formatSuffixes = $request->post['formatSuffixes'];
+    $formatSuffixes = $this->readFormatSuffixes($request);
 
     if (isset($request->post['formatMaxWidths']) && isset($request->post['formatMaxHeights'])) {
       // New corrected behavior since version 6, build 13
