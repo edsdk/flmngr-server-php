@@ -22,6 +22,6 @@
         "ext-gd": "*",
         "ext-json": "*",
         "ext-exif": "*",
-        "enshrined/svg-sanitize": "^0.22"
+        "enshrined/svg-sanitize": "^0.22 || ^1.0"
     }
 }
