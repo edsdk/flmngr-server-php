@@ -1,4 +1,4 @@
-[![Flmngr file manager logo](https://flmngr.com/img/favicons/favicon-64x64.png)](https://flmngr.com)
+[![Flmngr file manager logo](https://flmngr.com/img/logo/64px/Flmngr.png)](https://flmngr.com)
 
 # Flmngr PHP backend
 
