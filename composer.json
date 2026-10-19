@@ -23,5 +23,11 @@
         "ext-json": "*",
         "ext-exif": "*",
         "enshrined/svg-sanitize": "^0.22 || ^1.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6 || ^10 || ^11"
+    },
+    "scripts": {
+        "test": "phpunit"
     }
 }

@@ -21,7 +21,7 @@
 namespace EdSDK\FlmngrServer\fs;
 
 use EdSDK\FlmngrServer\model\Message;
-use EdSDK\FlmngrServer\lib\file\blurHash\Blurhash;
+use EdSDK\FlmngrServer\lib\file\BlurHash;
 use EdSDK\FlmngrServer\lib\file\Utils;
 use EdSDK\FlmngrServer\lib\MessageException;
 
@@ -275,7 +275,7 @@ class CachedFile {
 
     $cachedImageInfo = $this->getInfo();
     if (count($pixels) > 0) {
-      $cachedImageInfo["blurHash"] = Blurhash::encode($pixels, $components_x, $components_y);
+      $cachedImageInfo["blurHash"] = BlurHash::encode($pixels, $components_x, $components_y);
       if (isset($original_width)) {
         $cachedImageInfo["width"] = $original_width;
       }

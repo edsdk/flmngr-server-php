@@ -43,13 +43,18 @@ class FileSystem {
   public $embedPreviews = FALSE;
 
   // File names not allowed to upload or rename to: scripts (also with double
-  // extension like "x.php.jpg"), server config files, HTML. SVG is allowed but
-  // gets sanitized. The list can be overridden with 'denyFilePatterns' option.
+  // extension like "x.php.jpg"), server config files, HTML and XHTML (both run
+  // scripts in the browser), gzipped SVG (the sanitizer reads plain .svg only),
+  // ES modules (Apache serves .es and .mjs as JavaScript). Plain SVG is allowed
+  // but gets sanitized. The list can be overridden with 'denyFilePatterns' option.
   // Also it is always a good idea to disable script execution in files dir
   const DEFAULT_DENY_FILE_PATTERNS = [
     '.htaccess', '.htpasswd', '.user.ini',
     '*.php*', '*.phtml', '*.phar', '*.pht', '*.phps',
-    '*.htm', '*.html', '*.shtml',
+    '*.htm', '*.html', '*.shtml', '*.xhtml', '*.xhtm', '*.xht',
+    '*.svgz', '*.mjs', '*.es',
+    '*.aspx', '*.asa', '*.asax', '*.ascx', '*.ashx', '*.asmx', '*.axd', 'web.config', '*.cer',
+    '*.cfm', '*.cfml', '*.cfc', '*.jsp', '*.jspx', '*.jspf',
   ];
 
   function __construct($config) {
@@ -1005,6 +1010,12 @@ class FileSystem {
       );
     }
 
+    // Root-relative, so the same leading slash rule as in getRelativePath(): without it
+    // the path would be glued straight onto the root directory name
+    if (strpos($filePath, '/') !== 0) {
+      $filePath = '/' . $filePath;
+    }
+
     return $this->resizeFile2Impl(
       $filePath,
       $newFileNameWithoutExt,
@@ -1178,6 +1189,19 @@ class FileSystem {
       $width = max(1, floor($originalWidth * $ratio));
     }
 
+    // Only PNG, JPEG and WebP can be written back. A GIF or BMP resized as its own
+    // "default" format (the destination is the file itself) is left as it is and
+    // reported with its real size: there is no encoder for it, and writing the
+    // empty result would replace the file with nothing
+    $dstExt = strtolower('' . Utils::getExt($dstPath));
+    if ($dstExt !== 'png' && $dstExt !== 'jpg' && $dstExt !== 'jpeg' && $dstExt !== 'webp') {
+      return [
+        "url" => $filePath,
+        "width" => intval($originalWidth),
+        "height" => intval($originalHeight)
+      ];
+    }
+
     $resizedImage = imagecreatetruecolor($width, $height);
     imagealphablending($resizedImage, FALSE);
     imagesavealpha($resizedImage, TRUE);
@@ -1202,9 +1226,6 @@ class FileSystem {
     }
     elseif ($ext === 'jpg' || $ext === 'jpeg') {
       imagejpeg($resizedImage);
-    }
-    elseif ($ext === 'bmp') {
-      imagebmp($resizedImage);
     }
     elseif ($ext === 'webp') {
       imagewebp($resizedImage);
